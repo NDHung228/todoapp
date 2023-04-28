@@ -1,5 +1,7 @@
-// import 'package:firebase_app_web/Service/Auth_Service.dart';
+import 'package:todoapp/Service/Auth_Service.dart';
 import 'SignUpPage.dart';
+import 'PhoneAuth.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
@@ -7,7 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'HomePage.dart';
 
 class SignInPage extends StatefulWidget {
-  // SignInPage({Key key}) : super(key: key);
+  SignInPage({Key? key}) : super(key: key);
 
   @override
   _SignInPageState createState() => _SignInPageState();
@@ -18,7 +20,7 @@ class _SignInPageState extends State<SignInPage> {
   TextEditingController _emailController = TextEditingController();
   TextEditingController _pwdController = TextEditingController();
   bool circular = false;
-  // AuthClass authClass = AuthClass();
+  AuthClass authClass = AuthClass();
 
   @override
   Widget build(BuildContext context) {
@@ -42,8 +44,8 @@ class _SignInPageState extends State<SignInPage> {
               SizedBox(
                 height: 20,
               ),
-              buttonItem("assets/google.svg", "Continue with Google", 25, () {
-                // authClass.googleSignIn(context);
+              buttonItem("assets/google.svg", "Continue with Google", 25, () async{
+                await authClass.googleSignIn(context);
               }),
               SizedBox(
                 height: 15,
@@ -169,7 +171,7 @@ class _SignInPageState extends State<SignInPage> {
   Widget buttonItem(
       String imagepath, String buttonName, double size, Function onTap) {
     return InkWell(
-      onTap: () {},
+      onTap: () {onTap();},
       child: Container(
         width: MediaQuery.of(context).size.width - 60,
         height: 60,
