@@ -1,27 +1,17 @@
 class Note {
-  int id;
-  String title;
-  String content;
+  final String title;
+  final String description;
+  final String category;
+  final String uid;
+  final int noteid;
+  final String? password;
 
   Note({
-    required this.id,
     required this.title,
-    required this.content,
+    required this.description,
+    required this.category,
+    required this.uid,
+    required this.noteid,
+     this.password
   });
-
-  factory Note.fromJson(Map<String, dynamic> json) {
-    return Note(
-      id: json['id'],
-      title: json['title'],
-      content: json['content'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'title': title,
-      'content': content,
-    };
-  }
 }
