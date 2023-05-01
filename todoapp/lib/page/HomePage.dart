@@ -28,8 +28,35 @@ class _HomePageState extends State<HomePage> {
   TextEditingController _newPassController = TextEditingController();
   TextEditingController _changePassController = TextEditingController();
   var focus = FocusNode();
-
+  List<Note> _notes = []; // List of all notes
+  List<Note> _searchedNotes = []; // List of notes that match search query
+  bool _searching = false;
+  List<Note> notesList = [];
   var _formKey = GlobalKey<FormState>();
+  late Stream<QuerySnapshot> _noteStream;
+  late List<Map<String, dynamic>> _noteList;
+  late List<Map<String, dynamic>> _allNotes;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    User? user = _auth.currentUser;
+    Stream<QuerySnapshot> noteStream = FirebaseFirestore.instance
+        .collection('notes')
+        .where('uid', isEqualTo: user!.uid)
+        .snapshots();
+    _noteStream = noteStream;
+
+    noteStream.listen((QuerySnapshot snapshot) {
+      _allNotes = snapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+
+      _noteList = _allNotes;
+    });
+    super.initState();
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -56,6 +83,33 @@ class _HomePageState extends State<HomePage> {
     _changePassController.clear();
   }
 
+  void _searchNotes(String query) {
+    List<Map<String, dynamic>> results = [];
+    if (query.isEmpty) {
+      setState(() {
+        _searching = false;
+        _noteList = _allNotes;
+      });
+    } else {
+      _noteStream = FirebaseFirestore.instance
+          .collection('notes')
+          .where('title', isGreaterThanOrEqualTo: query)
+          .where('title', isLessThan: query + 'z')
+          .snapshots();
+
+      _noteStream.listen((QuerySnapshot snapshot) {
+        _noteList = snapshot.docs
+            .map((doc) => doc.data() as Map<String, dynamic>)
+            .toList();
+        results = _noteList;
+      });
+      setState(() {
+        _noteList = results;
+        _searching = true;
+      });
+    }
+  }
+
   void _savePassword(Note note) async {
     if (_formKey.currentState!.validate()) {
       DocumentSnapshot snapshot = await _db
@@ -70,7 +124,7 @@ class _HomePageState extends State<HomePage> {
     } else {}
   }
 
-  enterPassword(note) {
+  void enterPassword(note) {
     if (_formKey.currentState!.validate()) {
       Navigator.pop(context); // close dialog
       // handleEdit(note);
@@ -87,11 +141,17 @@ class _HomePageState extends State<HomePage> {
       body: Stack(
         children: [
           Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 15,
+            padding: EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 15,
+            ),
+            child: Column(children: [
+              searchBox(onChanged: _searchNotes),
+              Expanded(
+                child: homeWidget(),
               ),
-              child: homeWidget()),
+            ]),
+          )
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -125,35 +185,33 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget homeWidget() {
-    User? user = _auth.currentUser;
-    Stream<QuerySnapshot> noteStream = FirebaseFirestore.instance
-        .collection('notes')
-        .where('uid', isEqualTo: user!.uid)
-        .snapshots();
     if (_selectedIndex == 1) {
       return AddTodoPage();
     } else if (_selectedIndex == 0) {
       return StreamBuilder<QuerySnapshot>(
-        stream: noteStream,
+        stream: _noteStream,
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.hasError) {
             return Text('Something went wrong');
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Text('Loading...');
+            return Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.data!.docs.isEmpty) {
+            return Center(child: Text('No notes found'));
           }
           return ListView.builder(
-            itemCount: snapshot.data!.docs.length,
+            itemCount: _noteList.length,
             itemBuilder: (context, index) {
-              Map<String, dynamic> data =
-                  snapshot.data!.docs[index].data() as Map<String, dynamic>;
+              Map<String, dynamic> data = _noteList[index];
               Note note = Note(
                   title: data['title'],
                   description: data['description'],
                   category: data['category'],
                   uid: data['uid'],
                   noteid: data['noteid'],
-                  password: data['password']);
+                  password: data['password'],
+                  imageURL: data['imageURL']);
               return slidableNote(note);
             },
           );
@@ -321,7 +379,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget searchBox() {
+  Widget searchBox({required Function(String) onChanged}) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(
@@ -329,7 +387,7 @@ class _HomePageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(20),
       ),
       child: TextField(
-        onChanged: (value) => {},
+        onChanged: onChanged,
         decoration: InputDecoration(
           contentPadding: EdgeInsets.all(0),
           prefixIcon: Icon(

@@ -1,11 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:video_player/video_player.dart';
 import '../model/Note.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../Service/Note_Service.dart';
 import 'HomePage.dart';
+import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:chewie/chewie.dart';
 
 class AddTodoPage extends StatefulWidget {
   const AddTodoPage({super.key});
@@ -17,8 +23,30 @@ class AddTodoPage extends StatefulWidget {
 class _AddTodoPageState extends State<AddTodoPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-
+  File? imageFile;
+  File? videoFile;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  ImagePicker image = ImagePicker();
+  bool _isLoading = false;
+  PlatformFile? pickedFileVideo;
+  UploadTask? uploadTask;
+  VideoPlayerController? _videoController;
+  var chewieController;
+
+  void selectFileVideo() async {
+    final result = await FilePicker.platform.pickFiles();
+    if (result == null) return;
+    setState(() {
+      pickedFileVideo = result.files.first;
+      File c = File(result.files.single.path.toString());
+      setState(() {
+        videoFile = c;
+        
+      });
+      print('test '+videoFile.toString());
+    });
+  }
+
 
   final NoteService _noteService = NoteService();
   String _category = '';
@@ -26,7 +54,12 @@ class _AddTodoPageState extends State<AddTodoPage> {
     setState(() {
       _category = category;
     });
-    print('demo' + _category);
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
   }
 
   @override
@@ -40,6 +73,75 @@ class _AddTodoPageState extends State<AddTodoPage> {
   void clearController() {
     _descriptionController.clear();
     _titleController.clear();
+  }
+
+  void getImage() async {
+    var img = await image.pickImage(source: ImageSource.gallery);
+    setState(() {
+      imageFile = File(img!.path);
+    });
+  }
+
+  Future<String?> uploadImage() async {
+    String? downloadURL = '';
+
+    try {
+      Reference storageRef = FirebaseStorage.instance
+          .ref()
+          .child('images/${DateTime.now().toString()}');
+      UploadTask uploadTask = storageRef.putFile(imageFile!);
+      await uploadTask.whenComplete(() async {
+        downloadURL = await storageRef.getDownloadURL();
+      });
+    } on FirebaseException catch (e) {
+      print('Error uploading image: $e');
+    }
+    return downloadURL;
+  }
+
+  void handleAddNote() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    User? user = _auth.currentUser;
+    if (user == null) {
+      // handle user not logged in
+      return;
+    }
+
+    String uid = user.uid;
+    String title = _titleController.text;
+    String description = _descriptionController.text;
+    String category = _category;
+    print('test ' + await uploadImage().toString());
+
+    String? imageURL;
+    if (imageFile == null) {
+      imageURL = '';
+    } else {
+      imageURL = await uploadImage();
+    }
+
+    Note note = Note(
+        title: title,
+        description: description,
+        category: category,
+        uid: uid,
+        noteid: '',
+        password: '',
+        imageURL: imageURL);
+
+    await _noteService.addNote(note);
+    clearController();
+
+    setState(() {
+      _isLoading = false;
+    });
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => HomePage()),
+    );
   }
 
   @override
@@ -59,14 +161,6 @@ class _AddTodoPageState extends State<AddTodoPage> {
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SizedBox(
               height: 30,
-            ),
-            IconButton(
-              onPressed: () {},
-              icon: Icon(
-                CupertinoIcons.arrow_left,
-                color: Colors.white,
-                size: 28,
-              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(
@@ -133,6 +227,61 @@ class _AddTodoPageState extends State<AddTodoPage> {
                   ),
                   description(),
                   SizedBox(
+                    height: 12,
+                  ),
+                  label('Image'),
+                  SizedBox(
+                    height: 12,
+                  ),
+                  imageFile == null
+                      ? IconButton(
+                          icon: Icon(
+                            Icons.add_a_photo,
+                            size: 90,
+                            color: Color.fromARGB(255, 0, 0, 0),
+                          ),
+                          onPressed: () {
+                            getImage();
+                          },
+                        )
+                      : MaterialButton(
+                          height: 100,
+                          child: Image.file(
+                            imageFile!,
+                            fit: BoxFit.fill,
+                          ),
+                          onPressed: () {
+                            getImage();
+                          },
+                        ),
+                  SizedBox(
+                    height: 50,
+                  ),
+                  label('Video'),
+                  // pickedFileVideo == null
+                  //     ? IconButton(
+                  //         icon: Icon(
+                  //           Icons.video_camera_back,
+                  //           size: 90,
+                  //           color: Color.fromARGB(255, 0, 0, 0),
+                  //         ),
+                  //         onPressed: () async {
+                  //           selectFileVideo();
+                  //         },
+                  //       )
+                  //     : MaterialButton(
+                  //         height: 100,
+                  //         child: AspectRatio(
+                  //           aspectRatio: _videoController!.value.aspectRatio,
+                  //           child: Chewie(
+                  //             controller: chewieController,
+                  //           ),
+                  //         ),
+                  //         onPressed: () {
+                  //           getImage();
+                  //         },
+                  //       ),
+                  SizedBox(
                     height: 50,
                   ),
                   submitAdd(),
@@ -178,36 +327,10 @@ class _AddTodoPageState extends State<AddTodoPage> {
     );
   }
 
-  void handleAddNote() async {
-    User? user = _auth.currentUser;
-    if (user == null) {
-      // handle user not logged in
-      return;
-    }
-
-    String uid = user.uid;
-    String title = _titleController.text;
-    String description = _descriptionController.text;
-    String category = _category;
-    Note note = Note(
-        title: title,
-        description: description,
-        category: category,
-        uid: uid,
-        noteid: 0,
-        password: '');
-
-    await _noteService.addNote(note);
-    clearController();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => HomePage()),
-    );
-  }
-
   Widget submitAdd() {
     return InkWell(
       onTap: () {
+        print('test123');
         handleAddNote();
       },
       child: Container(
@@ -223,14 +346,16 @@ class _AddTodoPageState extends State<AddTodoPage> {
           ),
         ),
         child: Center(
-          child: Text(
-            "Add Todo",
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 16.5,
-                letterSpacing: 0.2),
-          ),
+          child: _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : Text(
+                  "Add Todo",
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16.5,
+                      letterSpacing: 0.2),
+                ),
         ),
       ),
     );

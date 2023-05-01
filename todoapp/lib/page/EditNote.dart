@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/placeholder.dart';
 
 import 'package:flutter/src/widgets/framework.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:todoapp/Service/Note_Service.dart';
 import 'package:todoapp/page/HomePage.dart';
 
@@ -22,10 +26,13 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
   late String _category;
-  late int _noteid;
+  late String _noteid;
   late String documentID;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   late Note note;
+  String imageURL = '';
+  File? imageFile;
+  ImagePicker image = ImagePicker();
 
   @override
   void initState() {
@@ -37,16 +44,45 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     _category = widget.note.category;
     _noteid = widget.note.noteid;
     note = widget.note;
+    print('test ' + widget.note.imageURL.toString());
+    imageURL = widget.note.imageURL ?? '';
+
     getDocumentID(_noteid);
   }
 
-  void getDocumentID(int noteid) async {
+  void getDocumentID(String noteid) async {
     DocumentSnapshot snapshot = await _db
         .collection('notes')
         .where('noteid', isEqualTo: noteid)
         .get()
         .then((value) => value.docs.first);
     documentID = snapshot.id;
+  }
+
+  void getImage() async {
+    var img = await image.pickImage(source: ImageSource.gallery);
+    setState(() {
+      imageFile = File(img!.path);
+    });
+  }
+
+  Future<String?> uploadImage() async {
+    String? downloadURL;
+
+    try {
+      Reference storageRef = FirebaseStorage.instance
+          .ref()
+          .child('images/${DateTime.now().toString()}');
+      if (imageFile != null) {
+        UploadTask uploadTask = storageRef.putFile(imageFile!);
+        await uploadTask.whenComplete(() async {
+          downloadURL = await storageRef.getDownloadURL();
+        });
+      }
+    } on FirebaseException catch (e) {
+      print('Error uploading image: $e');
+    }
+    return downloadURL;
   }
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -146,6 +182,45 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
                   SizedBox(
                     height: 50,
                   ),
+                  label('Images'),
+                  SizedBox(
+                    height: 12,
+                  ),
+                  (imageURL.length == 0 && imageFile == null)
+                      ? IconButton(
+                          icon: Icon(
+                            Icons.add_a_photo,
+                            size: 90,
+                            color: Color.fromARGB(255, 0, 0, 0),
+                          ),
+                          onPressed: () {
+                            getImage();
+                          },
+                        )
+                      : imageFile == null
+                          ? MaterialButton(
+                              height: 100,
+                              child: Image(
+                                image: NetworkImage(imageURL),
+                                fit: BoxFit.fill,
+                              ),
+                              onPressed: () {
+                                getImage();
+                              },
+                            )
+                          : MaterialButton(
+                              height: 100,
+                              child: Image.file(
+                                imageFile!,
+                                fit: BoxFit.fill,
+                              ),
+                              onPressed: () {
+                                getImage();
+                              },
+                            ),
+                  SizedBox(
+                    height: 50,
+                  ),
                   submitAdd(),
                   SizedBox(
                     height: 30,
@@ -200,13 +275,14 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     String title = _titleController.text;
     String description = _descriptionController.text;
     String category = _category;
+    String? imageURL = await uploadImage() ?? '';
     Note note = Note(
-      title: title,
-      description: description,
-      category: category,
-      uid: uid,
-      noteid: _noteid,
-    );
+        title: title,
+        description: description,
+        category: category,
+        uid: uid,
+        noteid: _noteid,
+        imageURL: imageURL);
 
     await _noteService.editNote(documentID, note);
     clearController();

@@ -5,6 +5,7 @@ class NoteService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final CollectionReference notesCollection =
       FirebaseFirestore.instance.collection('notes');
+
   Future<int> getNotesCount() async {
     final QuerySnapshot snapshot = await notesCollection.get();
     return snapshot.size;
@@ -20,9 +21,17 @@ class NoteService {
         'uid': note.uid,
         'timestamp': FieldValue.serverTimestamp(),
         'noteid': currentCount + 1,
-        'password': ''
-
+        'password': '',
+        'imageURL' : note.imageURL
       });
+
+      DocumentSnapshot snapshot = await _db
+                .collection('notes')
+                .where('noteid', isEqualTo: currentCount + 1
+                )
+                .get()
+                .then((value) => value.docs.first);
+      updateNoteID(snapshot.id, snapshot.id);
     } catch (e) {
       print(e);
     }
@@ -30,14 +39,25 @@ class NoteService {
 
   Future<void> editNote(String documentID, Note updatedNote) async {
     try {
-      
       await _db.collection('notes').doc(documentID).update({
         'title': updatedNote.title,
         'description': updatedNote.description,
         'category': updatedNote.category,
         'uid': updatedNote.uid,
         'timestamp': FieldValue.serverTimestamp(),
-        
+        'imageURL' : updatedNote.imageURL
+      });
+    } catch (e) {
+      print('can not find');
+      print(e);
+    }
+  }
+
+  Future<void> updateNoteID(String documentID, String noteid) async {
+    try {
+      await _db.collection('notes').doc(documentID).update({
+        'timestamp': FieldValue.serverTimestamp(),
+        'noteid': noteid
       });
     } catch (e) {
       print('can not find');
