@@ -1,13 +1,13 @@
-import 'package:todoapp/Service/Auth_Service.dart';
+// import 'package:firebase_app_web/Service/Auth_Service.dart';
 import 'HomePage.dart';
-import 'PhoneAuth.dart';
+// import 'package:firebase_app_web/pages/PhoneAuth.dart';
 import 'SignInPage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 
 class SignUpPage extends StatefulWidget {
-  SignUpPage({Key? key}) : super(key: key);
+  // SignUpPage({Key key}) : super(key: key);
 
   @override
   _SignUpPageState createState() => _SignUpPageState();
@@ -20,7 +20,7 @@ class _SignUpPageState extends State<SignUpPage> {
   TextEditingController _confirmController = TextEditingController();
 
   bool circular = false;
-  AuthClass authClass = AuthClass();
+  // AuthClass authClass = AuthClass();
 
   @override
   Widget build(BuildContext context) {
@@ -29,15 +29,15 @@ class _SignUpPageState extends State<SignUpPage> {
         child: Container(
           height: MediaQuery.of(context).size.height,
           width: MediaQuery.of(context).size.width,
-          color: Colors.black,
+          color: Colors.white,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 "Sign Up",
                 style: TextStyle(
-                  fontSize: 35,
-                  color: Colors.white,
+                  fontSize: 40,
+                  color: Color.fromARGB(255, 236, 49, 49),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -46,21 +46,21 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
               buttonItem("assets/google.svg", "Continue with Google", 25,
                   () async {
-                await authClass.googleSignIn(context);
+                // await authClass.googleSignIn(context);
               }),
               SizedBox(
                 height: 15,
-              ),  
+              ),
               buttonItem("assets/phone.svg", "Continue with Mobile", 30, () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (builder) => PhoneAuthPage()));
+                // Navigator.push(context,
+                //     MaterialPageRoute(builder: (builder) => PhoneAuthPage()));
               }),
               SizedBox(
                 height: 18,
               ),
               Text(
                 "Or",
-                style: TextStyle(color: Colors.white, fontSize: 18),
+                style: TextStyle(color: Colors.black, fontSize: 18),
               ),
               SizedBox(
                 height: 18,
@@ -87,7 +87,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   Text(
                     "If you alredy have an Account? ",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Colors.black,
                       fontSize: 16,
                     ),
                   ),
@@ -101,7 +101,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     child: Text(
                       "Login",
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Colors.red.shade600,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -124,7 +124,9 @@ class _SignUpPageState extends State<SignUpPage> {
         });
         try {
           if (_confirmController.text != _pwdController.text) {
-            final snackbar = SnackBar(content: Text('The password and confirmation password do not match '));
+            final snackbar = SnackBar(
+                content: Text(
+                    'The password and confirmation password do not match '));
             ScaffoldMessenger.of(context).showSnackBar(snackbar);
           } else {
             firebase_auth.UserCredential userCredential =
@@ -132,15 +134,14 @@ class _SignUpPageState extends State<SignUpPage> {
                     email: _emailController.text,
                     password: _pwdController.text);
             Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (builder) => HomePage()),
-              (route) => false);
+                context,
+                MaterialPageRoute(builder: (builder) => HomePage()),
+                (route) => false);
           }
 
           setState(() {
             circular = false;
           });
-          
         } catch (e) {
           final snackbar = SnackBar(content: Text(e.toString()));
           ScaffoldMessenger.of(context).showSnackBar(snackbar);
@@ -178,19 +179,17 @@ class _SignUpPageState extends State<SignUpPage> {
   Widget buttonItem(
       String imagepath, String buttonName, double size, Function onTap) {
     return InkWell(
-      onTap: () => {
-        onTap()
-      },
+      onTap: () {},
       child: Container(
         width: MediaQuery.of(context).size.width - 60,
         height: 60,
         child: Card(
-          color: Colors.black,
+          color: Colors.white,
           elevation: 8,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
             side: BorderSide(
-              width: 1,
+              width: 0,
               color: Colors.grey,
             ),
           ),
@@ -208,7 +207,7 @@ class _SignUpPageState extends State<SignUpPage> {
               Text(
                 buttonName,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Colors.black,
                   fontSize: 17,
                 ),
               ),
@@ -229,19 +228,20 @@ class _SignUpPageState extends State<SignUpPage> {
         obscureText: obscureText,
         style: TextStyle(
           fontSize: 17,
-          color: Colors.white,
+          color: Color.fromARGB(255, 2, 2, 2),
         ),
         decoration: InputDecoration(
           labelText: labeltext,
           labelStyle: TextStyle(
             fontSize: 17,
-            color: Colors.white,
+            color: Colors.black,
+            fontWeight: FontWeight.w400,
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
             borderSide: BorderSide(
-              width: 1.5,
-              color: Colors.amber,
+              width: 2,
+              color: Colors.red.shade500,
             ),
           ),
           enabledBorder: OutlineInputBorder(

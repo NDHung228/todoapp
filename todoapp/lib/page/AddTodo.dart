@@ -41,12 +41,10 @@ class _AddTodoPageState extends State<AddTodoPage> {
       File c = File(result.files.single.path.toString());
       setState(() {
         videoFile = c;
-        
       });
-      print('test '+videoFile.toString());
+      print('test ' + videoFile.toString());
     });
   }
-
 
   final NoteService _noteService = NoteService();
   String _category = '';
@@ -379,14 +377,14 @@ class _AddTodoPageState extends State<AddTodoPage> {
           },
           controller: _titleController,
           style: TextStyle(
-            color: Colors.grey,
+            color: Colors.black,
             fontSize: 17,
           ),
           decoration: InputDecoration(
               border: InputBorder.none,
               hintText: "Task Title",
               hintStyle: TextStyle(
-                color: Colors.grey,
+                color: Colors.black,
                 fontSize: 17,
               ),
               contentPadding: EdgeInsets.only(
@@ -416,7 +414,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
           },
           controller: _descriptionController,
           style: TextStyle(
-            color: Colors.grey,
+            color: Colors.black,
             fontSize: 17,
           ),
           maxLines: null,
@@ -424,7 +422,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
               border: InputBorder.none,
               hintText: "Task Title",
               hintStyle: TextStyle(
-                color: Colors.grey,
+                color: Colors.black,
                 fontSize: 17,
               ),
               contentPadding: EdgeInsets.only(

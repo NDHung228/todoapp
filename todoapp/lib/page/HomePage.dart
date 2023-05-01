@@ -4,6 +4,7 @@ import 'package:todoapp/Service/Auth_Service.dart';
 import 'AddTodo.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'Change_Password.dart';
 import 'EditNote.dart';
 import '../model/Note.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -216,6 +217,19 @@ class _HomePageState extends State<HomePage> {
             },
           );
         },
+      );
+    } else if (_selectedIndex == 3) {
+      return Container(
+        child: GestureDetector(
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+                return ChangePassword();
+              }));
+            },
+            child: Text(
+              "Change Password",
+              style: TextStyle(fontSize: 15, color: Colors.blue),
+            )),
       );
     }
     return AddTodoPage();
