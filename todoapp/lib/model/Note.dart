@@ -9,6 +9,7 @@ class Note {
   final String? password;
   Timestamp? timestamp;
   String? imageURL;
+  String? videoURL;
   Note(
       {required this.title,
       required this.description,
@@ -17,7 +18,7 @@ class Note {
       required this.noteid,
       this.timestamp,
       this.password,
-      this.imageURL});
+      this.imageURL,this.videoURL});
 
   factory Note.fromMap(Map<String, dynamic> data) {
     return Note(

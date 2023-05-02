@@ -22,7 +22,8 @@ class NoteService {
         'timestamp': FieldValue.serverTimestamp(),
         'noteid': currentCount + 1,
         'password': '',
-        'imageURL' : note.imageURL
+        'imageURL' : note.imageURL,
+        'videoURL' : note.videoURL
       });
 
       DocumentSnapshot snapshot = await _db
@@ -45,7 +46,8 @@ class NoteService {
         'category': updatedNote.category,
         'uid': updatedNote.uid,
         'timestamp': FieldValue.serverTimestamp(),
-        'imageURL' : updatedNote.imageURL
+        'imageURL' : updatedNote.imageURL,
+        'videoURL': updatedNote.videoURL
       });
     } catch (e) {
       print('can not find');

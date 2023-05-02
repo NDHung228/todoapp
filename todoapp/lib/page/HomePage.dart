@@ -212,7 +212,8 @@ class _HomePageState extends State<HomePage> {
                   uid: data['uid'],
                   noteid: data['noteid'],
                   password: data['password'],
-                  imageURL: data['imageURL']);
+                  imageURL: data['imageURL'],
+                  videoURL: data['videoURL']);
               return slidableNote(note);
             },
           );
