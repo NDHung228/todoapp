@@ -40,7 +40,7 @@ class _MyAppState extends State<MyApp> {
     }
     if (token.length == 0) {
       setState(() {
-        currentPage = SignInPage();
+        currentPage = SignUpPage();
       });
     }
   }
