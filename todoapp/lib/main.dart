@@ -20,7 +20,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  Widget currentPage = SignInPage();
+  Widget currentPage = SignUpPage();
   AuthClass authClass = AuthClass();
 
   @override
