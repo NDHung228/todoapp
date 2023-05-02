@@ -152,8 +152,6 @@ class _AddTodoPageState extends State<AddTodoPage> {
       videoURL = '';
     } else {
       videoURL = await uploadVideo();
-      print('demo ' +videoURL.toString());
-
     }
 
     Note note = Note(
@@ -164,7 +162,9 @@ class _AddTodoPageState extends State<AddTodoPage> {
         noteid: '',
         password: '',
         imageURL: imageURL,
-        videoURL: videoURL);
+        videoURL: videoURL,
+        isDelete: false,
+        dayDelete: 1);
 
     await _noteService.addNote(note);
     clearController();
@@ -365,7 +365,6 @@ class _AddTodoPageState extends State<AddTodoPage> {
   Widget submitAdd() {
     return InkWell(
       onTap: () {
-        print('test123');
         handleAddNote();
       },
       child: Container(

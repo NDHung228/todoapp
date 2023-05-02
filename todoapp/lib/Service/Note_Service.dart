@@ -23,7 +23,10 @@ class NoteService {
         'noteid': currentCount + 1,
         'password': '',
         'imageURL' : note.imageURL,
-        'videoURL' : note.videoURL
+        'videoURL' : note.videoURL,
+        'isDelete': note.isDelete,
+        'dayDelete': note.dayDelete
+
       });
 
       DocumentSnapshot snapshot = await _db
@@ -47,10 +50,12 @@ class NoteService {
         'uid': updatedNote.uid,
         'timestamp': FieldValue.serverTimestamp(),
         'imageURL' : updatedNote.imageURL,
-        'videoURL': updatedNote.videoURL
+        'videoURL': updatedNote.videoURL,
+        'isDelete': updatedNote.isDelete,
+        'dayDelete':updatedNote.dayDelete
       });
     } catch (e) {
-      print('can not find');
+    
       print(e);
     }
   }
@@ -62,7 +67,7 @@ class NoteService {
         'noteid': noteid
       });
     } catch (e) {
-      print('can not find');
+      
       print(e);
     }
   }
@@ -75,7 +80,7 @@ class NoteService {
         'password': pass
       });
     } catch (e) {
-      print('can not find');
+      
       print(e);
     }
   }
