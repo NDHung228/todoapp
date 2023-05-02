@@ -37,10 +37,16 @@ class _HomePageState extends State<HomePage> {
   late Stream<QuerySnapshot> _noteStream;
   late List<Map<String, dynamic>> _noteList;
   late List<Map<String, dynamic>> _allNotes;
+  bool _isLoadData = false;
 
   @override
   void initState() {
     // TODO: implement initState
+    loadData();
+    super.initState();
+  }
+
+  void loadData() {
     User? user = _auth.currentUser;
     Stream<QuerySnapshot> noteStream = FirebaseFirestore.instance
         .collection('notes')
@@ -55,7 +61,6 @@ class _HomePageState extends State<HomePage> {
 
       _noteList = _allNotes;
     });
-    super.initState();
   }
 
   void _onItemTapped(int index) {
@@ -92,18 +97,11 @@ class _HomePageState extends State<HomePage> {
         _noteList = _allNotes;
       });
     } else {
-      _noteStream = FirebaseFirestore.instance
-          .collection('notes')
-          .where('title', isGreaterThanOrEqualTo: query)
-          .where('title', isLessThan: query + 'z')
-          .snapshots();
+      results = _allNotes
+          .where((noteCur) =>
+              noteCur["title"].toLowerCase().contains(query.toLowerCase()))
+          .toList();
 
-      _noteStream.listen((QuerySnapshot snapshot) {
-        _noteList = snapshot.docs
-            .map((doc) => doc.data() as Map<String, dynamic>)
-            .toList();
-        results = _noteList;
-      });
       setState(() {
         _noteList = results;
         _searching = true;
@@ -147,7 +145,6 @@ class _HomePageState extends State<HomePage> {
               vertical: 15,
             ),
             child: Column(children: [
-              searchBox(onChanged: _searchNotes),
               Expanded(
                 child: homeWidget(),
               ),
@@ -187,39 +184,52 @@ class _HomePageState extends State<HomePage> {
 
   Widget homeWidget() {
     if (_selectedIndex == 1) {
+      _isLoadData = false;
       return AddTodoPage();
     } else if (_selectedIndex == 0) {
-      return StreamBuilder<QuerySnapshot>(
-        stream: _noteStream,
-        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (snapshot.hasError) {
-            return Text('Something went wrong');
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.data!.docs.isEmpty) {
-            return Center(child: Text('No notes found'));
-          }
-          return ListView.builder(
-            itemCount: _noteList.length,
-            itemBuilder: (context, index) {
-              Map<String, dynamic> data = _noteList[index];
-              Note note = Note(
-                  title: data['title'],
-                  description: data['description'],
-                  category: data['category'],
-                  uid: data['uid'],
-                  noteid: data['noteid'],
-                  password: data['password'],
-                  imageURL: data['imageURL'],
-                  videoURL: data['videoURL']);
-              return slidableNote(note);
-            },
-          );
-        },
+      if (!_isLoadData) {
+        loadData();
+        _isLoadData = true;
+      }
+      
+      return Column(
+        children: [searchBox(onChanged: _searchNotes),
+        Expanded(child:  StreamBuilder<QuerySnapshot>(
+          stream: _noteStream,
+          builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+            if (snapshot.hasError) {
+              return Text('Something went wrong');
+            }
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.data!.docs.isEmpty) {
+              return Center(child: Text('No notes found'));
+            }
+            return ListView.builder(
+              itemCount: _noteList.length,
+              itemBuilder: (context, index) {
+                Map<String, dynamic> data = _noteList[index];
+                Note note = Note(
+                    title: data['title'],
+                    description: data['description'],
+                    category: data['category'],
+                    uid: data['uid'],
+                    noteid: data['noteid'],
+                    password: data['password'],
+                    imageURL: data['imageURL'],
+                    videoURL: data['videoURL']);
+                return slidableNote(note);
+              },
+            );
+          },
+        ),)
+        ],
+        
       );
     } else if (_selectedIndex == 3) {
+      _isLoadData = false;
+
       return Container(
         child: GestureDetector(
             onTap: () {
@@ -233,6 +243,8 @@ class _HomePageState extends State<HomePage> {
             )),
       );
     }
+    _isLoadData = false;
+
     return AddTodoPage();
   }
 
