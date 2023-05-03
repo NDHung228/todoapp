@@ -28,9 +28,24 @@ class _AddTodoPageState extends State<AddTodoPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   ImagePicker image = ImagePicker();
   bool _isLoading = false;
+  PlatformFile? pickedFileVideo;
   UploadTask? uploadTask;
   VideoPlayerController? _videoController;
   var chewieController;
+
+  void selectFileVideo() async {
+    final result = await FilePicker.platform.pickFiles();
+    if (result == null) return;
+    setState(() {
+      pickedFileVideo = result.files.first;
+      File c = File(result.files.single.path.toString());
+      setState(() {
+        videoFile = c;
+        
+      });
+      print('test '+videoFile.toString());
+    });
+  }
 
 
   final NoteService _noteService = NoteService();
@@ -67,27 +82,6 @@ class _AddTodoPageState extends State<AddTodoPage> {
     });
   }
 
-  void selectFileVideo() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['mp3', 'mp4'],
-    );
-    if (result == null) return;
-    setState(() {
-      File c = File(result.files.single.path.toString());
-      setState(() {
-        videoFile = c;
-        _videoController = VideoPlayerController.file(videoFile!)..initialize();
-      });
-      chewieController = ChewieController(
-        videoPlayerController: _videoController!,
-        autoPlay: true,
-        looping: true,
-      );
-    });
-
-  }
-
   Future<String?> uploadImage() async {
     String? downloadURL = '';
 
@@ -105,25 +99,6 @@ class _AddTodoPageState extends State<AddTodoPage> {
     return downloadURL;
   }
 
-  Future<String?> uploadVideo() async {
-    String? downloadURL = '';
-
-    try {
-      Reference storageRef = FirebaseStorage.instance
-          .ref()
-          .child('videos/${DateTime.now().toString()}');
-      UploadTask uploadTask = storageRef.putFile(videoFile!);
-      await uploadTask.whenComplete(() async {
-        downloadURL = await storageRef.getDownloadURL();
-      });
-      
-    } on FirebaseException catch (e) {
-      print('Error uploading video: $e');
-    }
-    return downloadURL;
-  }
-
-
   void handleAddNote() async {
     setState(() {
       _isLoading = true;
@@ -139,19 +114,13 @@ class _AddTodoPageState extends State<AddTodoPage> {
     String title = _titleController.text;
     String description = _descriptionController.text;
     String category = _category;
+    print('test ' + await uploadImage().toString());
 
     String? imageURL;
     if (imageFile == null) {
       imageURL = '';
     } else {
       imageURL = await uploadImage();
-    }
-
-    String? videoURL;
-    if (videoFile == null) {
-      videoURL = '';
-    } else {
-      videoURL = await uploadVideo();
     }
 
     Note note = Note(
@@ -161,10 +130,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
         uid: uid,
         noteid: '',
         password: '',
-        imageURL: imageURL,
-        videoURL: videoURL,
-        isDelete: false,
-        dayDelete: 1);
+        imageURL: imageURL);
 
     await _noteService.addNote(note);
     clearController();
@@ -289,33 +255,32 @@ class _AddTodoPageState extends State<AddTodoPage> {
                           },
                         ),
                   SizedBox(
-                    height: 45,
+                    height: 50,
                   ),
                   label('Video'),
-                  _videoController == null
-                      ? IconButton(
-                          icon: Icon(
-                            Icons.video_camera_back,
-                            size: 90,
-                            color: Color.fromARGB(255, 0, 0, 0),
-                          ),
-                          onPressed: () async {
-                            selectFileVideo();
-                          },
-                        )
-                      : MaterialButton(
-                          height: 50,
-                          minWidth: 10,
-                          child: AspectRatio(
-                            aspectRatio: _videoController!.value.aspectRatio,
-                            child: Chewie(
-                              controller: chewieController,
-                            ),
-                          ),
-                          onPressed: () {
-                            selectFileVideo();
-                          },
-                        ),
+                  // pickedFileVideo == null
+                  //     ? IconButton(
+                  //         icon: Icon(
+                  //           Icons.video_camera_back,
+                  //           size: 90,
+                  //           color: Color.fromARGB(255, 0, 0, 0),
+                  //         ),
+                  //         onPressed: () async {
+                  //           selectFileVideo();
+                  //         },
+                  //       )
+                  //     : MaterialButton(
+                  //         height: 100,
+                  //         child: AspectRatio(
+                  //           aspectRatio: _videoController!.value.aspectRatio,
+                  //           child: Chewie(
+                  //             controller: chewieController,
+                  //           ),
+                  //         ),
+                  //         onPressed: () {
+                  //           getImage();
+                  //         },
+                  //       ),
                   SizedBox(
                     height: 50,
                   ),
@@ -365,6 +330,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
   Widget submitAdd() {
     return InkWell(
       onTap: () {
+        print('test123');
         handleAddNote();
       },
       child: Container(
@@ -413,14 +379,14 @@ class _AddTodoPageState extends State<AddTodoPage> {
           },
           controller: _titleController,
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.grey,
             fontSize: 17,
           ),
           decoration: InputDecoration(
               border: InputBorder.none,
               hintText: "Task Title",
               hintStyle: TextStyle(
-                color: Colors.black,
+                color: Colors.grey,
                 fontSize: 17,
               ),
               contentPadding: EdgeInsets.only(
@@ -450,7 +416,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
           },
           controller: _descriptionController,
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.grey,
             fontSize: 17,
           ),
           maxLines: null,
@@ -458,7 +424,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
               border: InputBorder.none,
               hintText: "Task Title",
               hintStyle: TextStyle(
-                color: Colors.black,
+                color: Colors.grey,
                 fontSize: 17,
               ),
               contentPadding: EdgeInsets.only(

@@ -9,9 +9,6 @@ class Note {
   final String? password;
   Timestamp? timestamp;
   String? imageURL;
-  String? videoURL;
-  bool? isDelete;
-  int? dayDelete;
   Note(
       {required this.title,
       required this.description,
@@ -20,8 +17,26 @@ class Note {
       required this.noteid,
       this.timestamp,
       this.password,
-      this.imageURL,this.videoURL,
-      this.isDelete,
-      this.dayDelete});
+      this.imageURL});
 
+  factory Note.fromMap(Map<String, dynamic> data) {
+    return Note(
+      noteid: data['noteid'],
+      title: data['title'],
+      description: data['content'],
+      password: data['password'],
+      category:  data['category'],
+      uid: data['uid'],
+      timestamp: data['timestamp']
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'noteid': noteid,
+      'title': title,
+      'description': description,
+      'password': password,
+    };
+  }
 }
