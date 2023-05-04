@@ -20,7 +20,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  Widget currentPage = SignInPage();
+  Widget currentPage = SignUpPage();
   AuthClass authClass = AuthClass();
 
   @override
@@ -40,7 +40,7 @@ class _MyAppState extends State<MyApp> {
     }
     if (token.length == 0) {
       setState(() {
-        currentPage = SignInPage();
+        currentPage = SignUpPage();
       });
     }
   }

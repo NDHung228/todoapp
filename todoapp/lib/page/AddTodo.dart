@@ -1,9 +1,11 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:todoapp/model/Label.dart';
 import 'package:video_player/video_player.dart';
 import '../model/Note.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,6 +14,7 @@ import 'HomePage.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:chewie/chewie.dart';
+import 'LabelSelection.dart';
 
 class AddTodoPage extends StatefulWidget {
   const AddTodoPage({super.key});
@@ -31,20 +34,56 @@ class _AddTodoPageState extends State<AddTodoPage> {
   UploadTask? uploadTask;
   VideoPlayerController? _videoController;
   var chewieController;
+  String? _audioURL;
+  File? audioFile;
+  final _audioPlayer = AudioPlayer();
+  bool isPlayingSound = false;
+  Duration durationSound = Duration.zero;
+  Duration position = Duration.zero;
 
-
-  final NoteService _noteService = NoteService();
-  String _category = '';
-  void _selectCategory(String category) {
-    setState(() {
-      _category = category;
-    });
-  }
+  List<Label> _availableLabels = [];
 
   @override
   void initState() {
     // TODO: implement initState
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      setState(() {
+        isPlayingSound = state == PlayerState.playing;
+      });
+    });
+
+    _audioPlayer.onDurationChanged.listen((newDuration) {
+      setState(() {
+        durationSound = newDuration;
+      });
+    });
+
+    _audioPlayer.onPositionChanged.listen((newPosition) {
+      setState(() {
+        position = newPosition;
+      });
+    });
+    loadData();
     super.initState();
+  }
+
+  final NoteService _noteService = NoteService();
+  String _label = '';
+  void _selectLabel(String label) {
+    setState(() {
+      _label = label;
+    });
+  }
+
+  Future<void> loadData() async {
+    try {
+      _availableLabels = await _noteService.getLabels();
+      setState(() {
+        _availableLabels = _availableLabels;
+      });
+    } catch (e) {
+      print(e);
+    }
   }
 
   @override
@@ -53,6 +92,9 @@ class _AddTodoPageState extends State<AddTodoPage> {
     super.dispose();
     _descriptionController.dispose();
     _titleController.dispose();
+    _audioPlayer!.dispose();
+    _videoController!.dispose();
+    chewieController.dispose();
   }
 
   void clearController() {
@@ -65,6 +107,19 @@ class _AddTodoPageState extends State<AddTodoPage> {
     setState(() {
       imageFile = File(img!.path);
     });
+  }
+
+  void selectFileAudio() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.audio,
+    );
+
+    if (result != null) {
+      setState(() {
+        audioFile = File(result.files.single.path.toString());
+        _audioURL = result.files.single.path;
+      });
+    }
   }
 
   void selectFileVideo() async {
@@ -85,7 +140,6 @@ class _AddTodoPageState extends State<AddTodoPage> {
         looping: true,
       );
     });
-
   }
 
   Future<String?> uploadImage() async {
@@ -96,6 +150,23 @@ class _AddTodoPageState extends State<AddTodoPage> {
           .ref()
           .child('images/${DateTime.now().toString()}');
       UploadTask uploadTask = storageRef.putFile(imageFile!);
+      await uploadTask.whenComplete(() async {
+        downloadURL = await storageRef.getDownloadURL();
+      });
+    } on FirebaseException catch (e) {
+      print('Error uploading image: $e');
+    }
+    return downloadURL;
+  }
+
+  Future<String?> uploadSound() async {
+    String? downloadURL = '';
+
+    try {
+      Reference storageRef = FirebaseStorage.instance
+          .ref()
+          .child('sounds/${DateTime.now().toString()}');
+      UploadTask uploadTask = storageRef.putFile(audioFile!);
       await uploadTask.whenComplete(() async {
         downloadURL = await storageRef.getDownloadURL();
       });
@@ -116,13 +187,11 @@ class _AddTodoPageState extends State<AddTodoPage> {
       await uploadTask.whenComplete(() async {
         downloadURL = await storageRef.getDownloadURL();
       });
-      
     } on FirebaseException catch (e) {
       print('Error uploading video: $e');
     }
     return downloadURL;
   }
-
 
   void handleAddNote() async {
     setState(() {
@@ -138,7 +207,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
     String uid = user.uid;
     String title = _titleController.text;
     String description = _descriptionController.text;
-    String category = _category;
+    String label = _label;
 
     String? imageURL;
     if (imageFile == null) {
@@ -152,28 +221,26 @@ class _AddTodoPageState extends State<AddTodoPage> {
       videoURL = '';
     } else {
       videoURL = await uploadVideo();
-<<<<<<< Updated upstream
-      print('demo ' +videoURL.toString());
-
-=======
     }
     String soundURL;
     if (audioFile == null) {
       soundURL = '';
     } else  {
       soundURL = await uploadSound() ?? '';
->>>>>>> Stashed changes
     }
 
     Note note = Note(
         title: title,
         description: description,
-        category: category,
+        label: label,
         uid: uid,
         noteid: '',
         password: '',
         imageURL: imageURL,
-        videoURL: videoURL);
+        videoURL: videoURL,
+        soundURL: soundURL,
+        isDelete: false,
+        dayDelete: 1);
 
     await _noteService.addNote(note);
     clearController();
@@ -243,24 +310,11 @@ class _AddTodoPageState extends State<AddTodoPage> {
                   SizedBox(
                     height: 25,
                   ),
-                  label("Category"),
+                  label("Label"),
                   SizedBox(
                     height: 12,
                   ),
-                  Wrap(
-                    runSpacing: 10,
-                    children: [
-                      chipData("Food", 0xffff6d6e),
-                      SizedBox(width: 20),
-                      chipData("WorkOut", 0xfff29732),
-                      SizedBox(width: 20),
-                      chipData("Work", 0xff6557ff),
-                      SizedBox(width: 20),
-                      chipData("Design", 0xff234ebd),
-                      SizedBox(width: 20),
-                      chipData("Run", 0xff2bc8d9),
-                    ],
-                  ),
+                  LabelSelector(allLabels: _availableLabels),
                   SizedBox(
                     height: 25,
                   ),
@@ -298,7 +352,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
                           },
                         ),
                   SizedBox(
-                    height: 45,
+                    height: 50,
                   ),
                   label('Video'),
                   _videoController == null
@@ -326,6 +380,11 @@ class _AddTodoPageState extends State<AddTodoPage> {
                           },
                         ),
                   SizedBox(
+                    height: 40,
+                  ),
+                  label('Audio'),
+                  _buildAudio(),
+                  SizedBox(
                     height: 50,
                   ),
                   submitAdd(),
@@ -344,10 +403,10 @@ class _AddTodoPageState extends State<AddTodoPage> {
   Widget chipData(String label, int color) {
     return GestureDetector(
       onTap: () {
-        _selectCategory(label);
+        _selectLabel(label);
       },
       child: Chip(
-        backgroundColor: _category == null || _category != label
+        backgroundColor: _label == null || _label != label
             ? Color(color)
             : Color(color).withOpacity(0.6),
         shape: RoundedRectangleBorder(
@@ -374,7 +433,6 @@ class _AddTodoPageState extends State<AddTodoPage> {
   Widget submitAdd() {
     return InkWell(
       onTap: () {
-        print('test123');
         handleAddNote();
       },
       child: Container(
@@ -442,8 +500,6 @@ class _AddTodoPageState extends State<AddTodoPage> {
     );
   }
 
-<<<<<<< Updated upstream
-=======
   Widget _buildAudio() {
     return _audioURL == null ? _buildFilePicker() : _buildAudioPlayer();
   }
@@ -500,7 +556,6 @@ class _AddTodoPageState extends State<AddTodoPage> {
     );
   }
 
->>>>>>> Stashed changes
   Widget description() {
     return Container(
       height: 150,
