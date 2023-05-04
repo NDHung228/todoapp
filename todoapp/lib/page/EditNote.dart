@@ -28,13 +28,13 @@ class EditNoteScreen extends StatefulWidget {
 class _EditNoteScreenState extends State<EditNoteScreen> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
-  late String _category;
+  late String _label;
   late String _noteid;
   late String documentID;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   late Note note;
-  String imageURL = '';
-  String videoURL = '';
+  String? imageURL = '';
+  String? videoURL = '';
   File? imageFile;
   File? videoFile;
   VideoPlayerController? _videoController;
@@ -50,17 +50,16 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     _titleController = TextEditingController(text: widget.note.title);
     _descriptionController =
         TextEditingController(text: widget.note.description);
-    _category = widget.note.category;
+    _label = widget.note.label;
     _noteid = widget.note.noteid;
     note = widget.note;
 
     imageURL = widget.note.imageURL ?? '';
     videoURL = widget.note.videoURL ?? '';
-    print('test ' + videoURL);
-
+    print('test videoURL' + videoURL.toString());
     if (videoURL != null) {
       _videoController = VideoPlayerController.network(
-        videoURL,
+        videoURL!,
       )..initialize();
       setState(() {
         chewieController = ChewieController(
@@ -90,7 +89,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     });
   }
 
-  void selectFileVideo() async {
+  Future<void> selectFileVideo() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['mp3', 'mp4'],
@@ -102,11 +101,13 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
         videoFile = c;
         _videoController = VideoPlayerController.file(videoFile!)..initialize();
       });
-      chewieController = ChewieController(
-        videoPlayerController: _videoController!,
-        autoPlay: true,
-        looping: true,
-      );
+      setState(() {
+        chewieController = ChewieController(
+          videoPlayerController: _videoController!,
+          autoPlay: true,
+          looping: true,
+        );
+      });
     });
   }
 
@@ -150,9 +151,9 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
 
   final NoteService _noteService = NoteService();
 
-  void _selectCategory(String category) {
+  void _selectCategory(String label) {
     setState(() {
-      _category = category;
+      _label = label;
     });
   }
 
@@ -162,6 +163,9 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     super.dispose();
     _descriptionController.dispose();
     _titleController.dispose();
+    chewieController.dispose();
+    _videoController!.dispose();
+
   }
 
   void clearController() {
@@ -247,7 +251,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
                   SizedBox(
                     height: 12,
                   ),
-                  (imageURL.length == 0 && imageFile == null)
+                  (imageURL!.length == 0 && imageFile == null)
                       ? IconButton(
                           icon: Icon(
                             Icons.add_a_photo,
@@ -262,7 +266,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
                           ? MaterialButton(
                               height: 100,
                               child: Image(
-                                image: NetworkImage(imageURL),
+                                image: NetworkImage(imageURL!),
                                 fit: BoxFit.fill,
                               ),
                               onPressed: () {
@@ -283,7 +287,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
                     height: 50,
                   ),
                   label('Video'),
-                  videoURL.length == 0
+                  (videoURL!.length == 0 && videoFile == null)
                       ? IconButton(
                           icon: Icon(
                             Icons.video_camera_back,
@@ -329,7 +333,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
         _selectCategory(label);
       },
       child: Chip(
-        backgroundColor: _category == null || _category != label
+        backgroundColor: _label == null || _label != label
             ? Color(color)
             : Color(color).withOpacity(0.6),
         shape: RoundedRectangleBorder(
@@ -359,31 +363,32 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     });
     User? user = _auth.currentUser;
     if (user == null) {
-      // handle user not logged in
       return;
     }
 
     String uid = user.uid;
     String title = _titleController.text;
     String description = _descriptionController.text;
-    String category = _category;
-    String? imageURL = await uploadImage() ?? '';
-    String? videoURL;
-    if (videoFile == null) {
-      videoURL = '';
-    } else {
+    String label = _label;
+    if (imageFile != null) {
+      imageURL = await uploadImage();
+    }
+
+
+    if (videoFile != null) {
       videoURL = await uploadVideo();
-      print('demo ' + videoURL.toString());
     }
 
     Note note = Note(
         title: title,
         description: description,
-        category: category,
+        label: label,
         uid: uid,
         noteid: _noteid,
         imageURL: imageURL,
-        videoURL: videoURL);
+        videoURL: videoURL,
+        dayDelete: 1,
+        isDelete: false);
 
     await _noteService.editNote(documentID, note);
     clearController();

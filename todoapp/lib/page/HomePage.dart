@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:todoapp/main.dart';
 import 'package:todoapp/Service/Auth_Service.dart';
+import 'package:todoapp/model/Label.dart';
 import 'package:todoapp/page/TrashPage.dart';
 import 'AddTodo.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,6 +11,7 @@ import 'EditNote.dart';
 import '../model/Note.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../Service/Note_Service.dart';
+import 'LabelPage.dart';
 
 class HomePage extends StatefulWidget {
   HomePage({Key? key}) : super(key: key);
@@ -40,6 +42,7 @@ class _HomePageState extends State<HomePage> {
   late List<Map<String, dynamic>> _allNotes;
   bool _isLoadData = false;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  
   @override
   void initState() {
     // TODO: implement initState
@@ -68,7 +71,7 @@ class _HomePageState extends State<HomePage> {
         return bTime.compareTo(aTime); // sort in descending order
       });
     });
-
+    
   }
 
   void _onItemTapped(int index) {
@@ -152,7 +155,7 @@ class _HomePageState extends State<HomePage> {
             decoration: BoxDecoration(
               color: Colors.blue,
             ),
-            child: Text('Drawer Header'),
+            child: Text('App ToDo'),
           ),
           ListTile(
             leading: Icon(Icons.delete),
@@ -167,12 +170,15 @@ class _HomePageState extends State<HomePage> {
             },
           ),
           ListTile(
-            title: const Text('Item 2'),
+            leading: Icon(Icons.label),
+            title: const Text('Label '),
             onTap: () {
-              // Update the state of the app
-              // ...
-              // Then close the drawer
-              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => LabelManager(),
+                ),
+              );
             },
           ),
         ],
@@ -266,7 +272,7 @@ class _HomePageState extends State<HomePage> {
                           Note note = Note(
                               title: data['title'],
                               description: data['description'],
-                              category: data['category'],
+                              label: data['label'],
                               uid: data['uid'],
                               noteid: data['noteid'],
                               password: data['password'],
@@ -381,7 +387,7 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           subtitle: Text(note.description.toString()),
-          trailing: Text(note.category.toString()),
+          trailing: Text(note.label.toString()),
           onTap: () {
             if (note.password!.length != 0) {
               showDialog(
