@@ -189,6 +189,7 @@ class _HomePageState extends State<HomePage> {
     if (_selectedIndex == 1) {
       return AddTodoPage();
     } else if (_selectedIndex == 0) {
+<<<<<<< Updated upstream
       return StreamBuilder<QuerySnapshot>(
         stream: _noteStream,
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -218,6 +219,53 @@ class _HomePageState extends State<HomePage> {
             },
           );
         },
+=======
+      if (!_isLoadData) {
+        loadData();
+        _isLoadData = true;
+      }
+      return Column(
+        children: [
+          searchBox(onChanged: _searchNotes),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _noteStream,
+              builder: (BuildContext context,
+                  AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (snapshot.hasError) {
+                  return Text('Something went wrong');
+                }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.data!.docs.isEmpty) {
+                  return Center(child: Text('No notes found'));
+                }
+                return !_noteList.isEmpty
+                    ? ListView.builder(
+                        itemCount: _noteList.length,
+                        itemBuilder: (context, index) {
+                          Map<String, dynamic> data = _noteList[index];
+                          Note note = Note(
+                              title: data['title'],
+                              description: data['description'],
+                              label: data['label'],
+                              uid: data['uid'],
+                              noteid: data['noteid'],
+                              password: data['password'],
+                              imageURL: data['imageURL'],
+                              videoURL: data['videoURL'],
+                              soundURL: data['soundURL'],
+                              dayDelete: data['dayDelete']);
+                          return slidableNote(note);
+                        },
+                      )
+                    : Center(child: Text('No any notes found'));
+              },
+            ),
+          )
+        ],
+>>>>>>> Stashed changes
       );
     } else if (_selectedIndex == 3) {
       return Container(

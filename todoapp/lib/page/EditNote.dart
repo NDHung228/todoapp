@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:chewie/chewie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
@@ -37,9 +38,14 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   String videoURL = '';
   File? imageFile;
   File? videoFile;
+  File? audioFile;
   VideoPlayerController? _videoController;
   var chewieController;
-
+  String? _audioURL ='';
+  final _audioPlayer = AudioPlayer();
+  bool isPlayingSound = false;
+  Duration durationSound = Duration.zero;
+  Duration position = Duration.zero;
   ImagePicker image = ImagePicker();
   bool _isLoading = false;
 
@@ -56,7 +62,16 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
 
     imageURL = widget.note.imageURL ?? '';
     videoURL = widget.note.videoURL ?? '';
+<<<<<<< Updated upstream
     print('test ' + videoURL);
+=======
+    _audioURL = widget.note.soundURL ?? '';
+
+    print('audio ' +_audioURL.toString());
+    if (_audioURL!.length != 0) {
+      audioFile = File(_audioURL.toString());
+    }
+>>>>>>> Stashed changes
 
     if (videoURL != null) {
       _videoController = VideoPlayerController.network(
@@ -70,6 +85,24 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
         );
       });
     }
+
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      setState(() {
+        isPlayingSound = state == PlayerState.playing;
+      });
+    });
+
+    _audioPlayer.onDurationChanged.listen((newDuration) {
+      setState(() {
+        durationSound = newDuration;
+      });
+    });
+
+    _audioPlayer.onPositionChanged.listen((newPosition) {
+      setState(() {
+        position = newPosition;
+      });
+    });
 
     getDocumentID(_noteid);
   }
@@ -108,6 +141,19 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
         looping: true,
       );
     });
+  }
+
+  void selectFileAudio() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.audio,
+    );
+
+    if (result != null) {
+      setState(() {
+        audioFile = File(result.files.single.path.toString());
+        _audioURL = result.files.single.path;
+      });
+    }
   }
 
   Future<String?> uploadVideo() async {
@@ -162,6 +208,11 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     super.dispose();
     _descriptionController.dispose();
     _titleController.dispose();
+<<<<<<< Updated upstream
+=======
+    chewieController.dispose();
+    _videoController!.dispose();
+>>>>>>> Stashed changes
   }
 
   void clearController() {
@@ -310,6 +361,11 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
                   SizedBox(
                     height: 50,
                   ),
+                  label('Audio'),
+                  _buildAudio(),
+                  SizedBox(
+                    height: 50,
+                  ),
                   submitAdd(),
                   SizedBox(
                     height: 30,
@@ -318,6 +374,61 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
               ),
             )
           ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAudio() {
+    return _audioURL?.length == 0  ? _buildFilePicker() : _buildAudioPlayer();
+  }
+
+  Widget _buildFilePicker() {
+    return IconButton(
+      icon: Icon(
+        Icons.audiotrack,
+        size: 60,
+        color: Color.fromARGB(255, 0, 0, 0),
+      ),
+      onPressed: selectFileAudio,
+    );
+  }
+
+  Widget _buildAudioPlayer() {
+    return Container(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                IconButton(
+                    onPressed: () async {
+                      if (!isPlayingSound) {
+                        await _audioPlayer.play(UrlSource(_audioURL ?? ''));
+                      } else {
+                        await _audioPlayer.pause();
+                      }
+                    },
+                    icon: isPlayingSound
+                        ? Icon(Icons.stop)
+                        : Icon(Icons.play_arrow)),
+                Expanded(
+                  child: Slider(
+                    min: 0, 
+                    max: durationSound.inSeconds.toDouble(),
+                    activeColor: Colors.black,
+                    value: position.inSeconds.toDouble(),
+                    onChanged: (value) async {
+                      final position = Duration(seconds: value.toInt());
+                      await _audioPlayer.seek(position);
+                      await _audioPlayer.resume();
+                    },
+                  ),
+                )
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -353,6 +464,23 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     );
   }
 
+  Future<String?> uploadSound() async {
+    String? downloadURL = '';
+
+    try {
+      Reference storageRef = FirebaseStorage.instance
+          .ref()
+          .child('sounds/${DateTime.now().toString()}');
+      UploadTask uploadTask = storageRef.putFile(audioFile!);
+      await uploadTask.whenComplete(() async {
+        downloadURL = await storageRef.getDownloadURL();
+      });
+    } on FirebaseException catch (e) {
+      print('Error uploading image: $e');
+    }
+    return downloadURL;
+  }
+
   void handleEditNote() async {
     setState(() {
       _isLoading = true;
@@ -366,15 +494,32 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     String uid = user.uid;
     String title = _titleController.text;
     String description = _descriptionController.text;
+<<<<<<< Updated upstream
     String category = _category;
     String? imageURL = await uploadImage() ?? '';
     String? videoURL;
     if (videoFile == null) {
       videoURL = '';
     } else {
+=======
+    String label = _label;
+    if (imageFile != null) {
+      imageURL = await uploadImage();
+    }
+
+    if (videoFile != null) {
+>>>>>>> Stashed changes
       videoURL = await uploadVideo();
       print('demo ' + videoURL.toString());
     }
+
+    String soundURL;
+    if (audioFile == null && _audioURL?.length == 0) {
+      soundURL = '';
+    } else {
+      soundURL = await uploadSound() ?? '';
+    }
+    print('upload audio '+soundURL);
 
     Note note = Note(
         title: title,
@@ -383,7 +528,14 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
         uid: uid,
         noteid: _noteid,
         imageURL: imageURL,
+<<<<<<< Updated upstream
         videoURL: videoURL);
+=======
+        videoURL: videoURL,
+        soundURL: soundURL,
+        dayDelete: 1,
+        isDelete: false);
+>>>>>>> Stashed changes
 
     await _noteService.editNote(documentID, note);
     clearController();

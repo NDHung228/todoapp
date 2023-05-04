@@ -152,8 +152,17 @@ class _AddTodoPageState extends State<AddTodoPage> {
       videoURL = '';
     } else {
       videoURL = await uploadVideo();
+<<<<<<< Updated upstream
       print('demo ' +videoURL.toString());
 
+=======
+    }
+    String soundURL;
+    if (audioFile == null) {
+      soundURL = '';
+    } else  {
+      soundURL = await uploadSound() ?? '';
+>>>>>>> Stashed changes
     }
 
     Note note = Note(
@@ -433,6 +442,65 @@ class _AddTodoPageState extends State<AddTodoPage> {
     );
   }
 
+<<<<<<< Updated upstream
+=======
+  Widget _buildAudio() {
+    return _audioURL == null ? _buildFilePicker() : _buildAudioPlayer();
+  }
+
+  Widget _buildFilePicker() {
+    return IconButton(
+      icon: Icon(
+        Icons.audiotrack,
+        size: 60,
+        color: Color.fromARGB(255, 0, 0, 0),
+      ),
+      onPressed: selectFileAudio,
+    );
+  }
+
+  Widget _buildAudioPlayer() {
+    return Container(
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                IconButton(
+                    onPressed: () async {
+                      if (!isPlayingSound) {
+                        print('test play aduio');
+                        await _audioPlayer.play(UrlSource(_audioURL ?? ''));
+                      } else {
+                        await _audioPlayer.pause();
+                      }
+                    },
+                    icon: isPlayingSound
+                        ? Icon(Icons.stop)
+                        : Icon(Icons.play_arrow)),
+                Expanded(
+                  child: Slider(
+                    min: 0,
+                    max: durationSound.inSeconds.toDouble(),
+                    activeColor: Colors.black,
+                    value: position.inSeconds.toDouble(),
+                    onChanged: (value) async {
+                      final position = Duration(seconds: value.toInt());
+                      await _audioPlayer.seek(position);
+                      await _audioPlayer.resume();
+                    },
+                  ),
+                )
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+>>>>>>> Stashed changes
   Widget description() {
     return Container(
       height: 150,
