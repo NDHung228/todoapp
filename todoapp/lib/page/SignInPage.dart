@@ -1,7 +1,8 @@
 import 'package:todoapp/Service/Auth_Service.dart';
-import 'SignUpPage.dart';
+import 'Enter_email_forgot_password.dart';
+import 'Change_Password.dart';
 import 'PhoneAuth.dart';
-
+import 'SignUpPage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
@@ -29,15 +30,15 @@ class _SignInPageState extends State<SignInPage> {
         child: Container(
           height: MediaQuery.of(context).size.height,
           width: MediaQuery.of(context).size.width,
-          color: Colors.black,
+          color: Colors.white,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 "Sign In",
                 style: TextStyle(
-                  fontSize: 35,
-                  color: Colors.white,
+                  fontSize: 40,
+                  color: Color.fromARGB(255, 236, 49, 49),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -56,7 +57,7 @@ class _SignInPageState extends State<SignInPage> {
               ),
               Text(
                 "Or",
-                style: TextStyle(color: Colors.white, fontSize: 18),
+                style: TextStyle(color: Colors.black, fontSize: 18),
               ),
               SizedBox(
                 height: 18,
@@ -71,7 +72,7 @@ class _SignInPageState extends State<SignInPage> {
               ),
               colorButton(),
               SizedBox(
-                height: 20,
+                height: 25,
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -79,7 +80,7 @@ class _SignInPageState extends State<SignInPage> {
                   Text(
                     "If you don't have an Account? ",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Colors.black,
                       fontSize: 16,
                     ),
                   ),
@@ -93,7 +94,7 @@ class _SignInPageState extends State<SignInPage> {
                     child: Text(
                       "SignUp",
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Colors.red.shade600,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -104,12 +105,19 @@ class _SignInPageState extends State<SignInPage> {
               SizedBox(
                 height: 10,
               ),
-              Text(
-                "Forgot Password?",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) {
+                    return ForgotPassword();
+                  }));
+                },
+                child: Text(
+                  "Forgot Password?",
+                  style: TextStyle(
+                    color: Colors.deepOrange.shade700,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -126,7 +134,7 @@ class _SignInPageState extends State<SignInPage> {
           firebase_auth.UserCredential userCredential =
               await firebaseAuth.signInWithEmailAndPassword(
                   email: _emailController.text, password: _pwdController.text);
-        
+
           setState(() {
             circular = false;
           });
@@ -148,9 +156,9 @@ class _SignInPageState extends State<SignInPage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           gradient: LinearGradient(colors: [
-            Color(0xfffd746c),
+            Color.fromARGB(255, 249, 138, 132),
             Color(0xffff9068),
-            Color(0xfffd746c)
+            Color.fromARGB(255, 250, 90, 81)
           ]),
         ),
         child: Center(
@@ -160,7 +168,8 @@ class _SignInPageState extends State<SignInPage> {
                   "Sign In",
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
         ),
@@ -176,12 +185,12 @@ class _SignInPageState extends State<SignInPage> {
         width: MediaQuery.of(context).size.width - 60,
         height: 60,
         child: Card(
-          color: Colors.black,
+          color: Colors.white,
           elevation: 8,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
             side: BorderSide(
-              width: 1,
+              width: 0,
               color: Colors.grey,
             ),
           ),
@@ -199,7 +208,7 @@ class _SignInPageState extends State<SignInPage> {
               Text(
                 buttonName,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Colors.black,
                   fontSize: 17,
                 ),
               ),
@@ -220,25 +229,26 @@ class _SignInPageState extends State<SignInPage> {
         obscureText: obscureText,
         style: TextStyle(
           fontSize: 17,
-          color: Colors.white,
+          color: Colors.black,
         ),
         decoration: InputDecoration(
           labelText: labeltext,
           labelStyle: TextStyle(
             fontSize: 17,
-            color: Colors.white,
+            color: Colors.black,
+            fontWeight: FontWeight.w400,
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
             borderSide: BorderSide(
-              width: 1.5,
-              color: Colors.amber,
+              width: 2,
+              color: Colors.red.shade500,
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
             borderSide: BorderSide(
-              width: 1,
+              width: 2,
               color: Colors.grey,
             ),
           ),

@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:chewie/chewie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +12,7 @@ import 'package:flutter/src/widgets/framework.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:todoapp/Service/Note_Service.dart';
 import 'package:todoapp/page/HomePage.dart';
+import 'package:video_player/video_player.dart';
 
 import '../model/Note.dart';
 
@@ -31,8 +34,14 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   late Note note;
   String imageURL = '';
+  String videoURL = '';
   File? imageFile;
+  File? videoFile;
+  VideoPlayerController? _videoController;
+  var chewieController;
+
   ImagePicker image = ImagePicker();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -44,8 +53,23 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     _category = widget.note.category;
     _noteid = widget.note.noteid;
     note = widget.note;
-    print('test ' + widget.note.imageURL.toString());
+
     imageURL = widget.note.imageURL ?? '';
+    videoURL = widget.note.videoURL ?? '';
+    print('test ' + videoURL);
+
+    if (videoURL != null) {
+      _videoController = VideoPlayerController.network(
+        videoURL,
+      )..initialize();
+      setState(() {
+        chewieController = ChewieController(
+          videoPlayerController: _videoController!,
+          autoPlay: true,
+          looping: true,
+        );
+      });
+    }
 
     getDocumentID(_noteid);
   }
@@ -64,6 +88,43 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     setState(() {
       imageFile = File(img!.path);
     });
+  }
+
+  void selectFileVideo() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['mp3', 'mp4'],
+    );
+    if (result == null) return;
+    setState(() {
+      File c = File(result.files.single.path.toString());
+      setState(() {
+        videoFile = c;
+        _videoController = VideoPlayerController.file(videoFile!)..initialize();
+      });
+      chewieController = ChewieController(
+        videoPlayerController: _videoController!,
+        autoPlay: true,
+        looping: true,
+      );
+    });
+  }
+
+  Future<String?> uploadVideo() async {
+    String? downloadURL = '';
+
+    try {
+      Reference storageRef = FirebaseStorage.instance
+          .ref()
+          .child('videos/${DateTime.now().toString()}');
+      UploadTask uploadTask = storageRef.putFile(videoFile!);
+      await uploadTask.whenComplete(() async {
+        downloadURL = await storageRef.getDownloadURL();
+      });
+    } on FirebaseException catch (e) {
+      print('Error uploading video: $e');
+    }
+    return downloadURL;
   }
 
   Future<String?> uploadImage() async {
@@ -221,6 +282,34 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
                   SizedBox(
                     height: 50,
                   ),
+                  label('Video'),
+                  videoURL.length == 0
+                      ? IconButton(
+                          icon: Icon(
+                            Icons.video_camera_back,
+                            size: 90,
+                            color: Color.fromARGB(255, 0, 0, 0),
+                          ),
+                          onPressed: () async {
+                            selectFileVideo();
+                          },
+                        )
+                      : MaterialButton(
+                          height: 50,
+                          minWidth: 10,
+                          child: AspectRatio(
+                            aspectRatio: _videoController!.value.aspectRatio,
+                            child: Chewie(
+                              controller: chewieController,
+                            ),
+                          ),
+                          onPressed: () {
+                            selectFileVideo();
+                          },
+                        ),
+                  SizedBox(
+                    height: 50,
+                  ),
                   submitAdd(),
                   SizedBox(
                     height: 30,
@@ -265,6 +354,9 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   }
 
   void handleEditNote() async {
+    setState(() {
+      _isLoading = true;
+    });
     User? user = _auth.currentUser;
     if (user == null) {
       // handle user not logged in
@@ -276,16 +368,29 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     String description = _descriptionController.text;
     String category = _category;
     String? imageURL = await uploadImage() ?? '';
+    String? videoURL;
+    if (videoFile == null) {
+      videoURL = '';
+    } else {
+      videoURL = await uploadVideo();
+      print('demo ' + videoURL.toString());
+    }
+
     Note note = Note(
         title: title,
         description: description,
         category: category,
         uid: uid,
         noteid: _noteid,
-        imageURL: imageURL);
+        imageURL: imageURL,
+        videoURL: videoURL);
 
     await _noteService.editNote(documentID, note);
     clearController();
+
+    setState(() {
+      _isLoading = false;
+    });
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => HomePage()),
@@ -310,14 +415,16 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
           ),
         ),
         child: Center(
-          child: Text(
-            "Save",
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 16.5,
-                letterSpacing: 0.2),
-          ),
+          child: _isLoading
+              ? Center(child: CircularProgressIndicator())
+              : Text(
+                  "Save",
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16.5,
+                      letterSpacing: 0.2),
+                ),
         ),
       ),
     );

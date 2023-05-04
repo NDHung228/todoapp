@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:todoapp/main.dart';
 import 'package:todoapp/Service/Auth_Service.dart';
+import 'package:todoapp/page/TrashPage.dart';
 import 'AddTodo.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'Change_Password.dart';
 import 'EditNote.dart';
 import '../model/Note.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -36,25 +38,37 @@ class _HomePageState extends State<HomePage> {
   late Stream<QuerySnapshot> _noteStream;
   late List<Map<String, dynamic>> _noteList;
   late List<Map<String, dynamic>> _allNotes;
-
+  bool _isLoadData = false;
+  bool _isListView = true;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   @override
   void initState() {
     // TODO: implement initState
+    loadData();
+    super.initState();
+  }
+
+  void loadData() async {
     User? user = _auth.currentUser;
     Stream<QuerySnapshot> noteStream = FirebaseFirestore.instance
         .collection('notes')
         .where('uid', isEqualTo: user!.uid)
+        .where('isDelete', isEqualTo: false)
         .snapshots();
+
     _noteStream = noteStream;
 
     noteStream.listen((QuerySnapshot snapshot) {
       _allNotes = snapshot.docs
           .map((doc) => doc.data() as Map<String, dynamic>)
           .toList();
-
       _noteList = _allNotes;
+      _noteList.sort((a, b) {
+        Timestamp aTime = a['timestamp'];
+        Timestamp bTime = b['timestamp'];
+        return bTime.compareTo(aTime); // sort in descending order
+      });
     });
-    super.initState();
   }
 
   void _onItemTapped(int index) {
@@ -91,18 +105,14 @@ class _HomePageState extends State<HomePage> {
         _noteList = _allNotes;
       });
     } else {
-      _noteStream = FirebaseFirestore.instance
-          .collection('notes')
-          .where('title', isGreaterThanOrEqualTo: query)
-          .where('title', isLessThan: query + 'z')
-          .snapshots();
+      results = _allNotes
+          .where((noteCur) =>
+              noteCur["title"].toLowerCase().contains(query.toLowerCase()) ||
+              noteCur["description"]
+                  .toLowerCase()
+                  .contains(query.toLowerCase()))
+          .toList();
 
-      _noteStream.listen((QuerySnapshot snapshot) {
-        _noteList = snapshot.docs
-            .map((doc) => doc.data() as Map<String, dynamic>)
-            .toList();
-        results = _noteList;
-      });
       setState(() {
         _noteList = results;
         _searching = true;
@@ -121,6 +131,7 @@ class _HomePageState extends State<HomePage> {
       _noteService.updatePassword(snapshot.id, _textPassController.text);
 
       Navigator.pop(context); // close dialog
+      clearController();
     } else {}
   }
 
@@ -132,12 +143,50 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Widget DrawerMenu() {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          const DrawerHeader(
+            decoration: BoxDecoration(
+              color: Colors.blue,
+            ),
+            child: Text('Drawer Header'),
+          ),
+          ListTile(
+            leading: Icon(Icons.delete),
+            title: const Text('Recycle bin'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TrashPage(noteList: _allNotes),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            title: const Text('Item 2'),
+            onTap: () {
+              // Update the state of the app
+              // ...
+              // Then close the drawer
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   AuthClass authClass = AuthClass();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _homeAppBar(),
+      drawer: DrawerMenu(),
       body: Stack(
         children: [
           Container(
@@ -146,7 +195,6 @@ class _HomePageState extends State<HomePage> {
               vertical: 15,
             ),
             child: Column(children: [
-              searchBox(onChanged: _searchNotes),
               Expanded(
                 child: homeWidget(),
               ),
@@ -186,39 +234,116 @@ class _HomePageState extends State<HomePage> {
 
   Widget homeWidget() {
     if (_selectedIndex == 1) {
+      _isLoadData = false;
       return AddTodoPage();
     } else if (_selectedIndex == 0) {
-      return StreamBuilder<QuerySnapshot>(
-        stream: _noteStream,
-        builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (snapshot.hasError) {
-            return Text('Something went wrong');
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.data!.docs.isEmpty) {
-            return Center(child: Text('No notes found'));
-          }
-          return ListView.builder(
-            itemCount: _noteList.length,
-            itemBuilder: (context, index) {
-              Map<String, dynamic> data = _noteList[index];
-              Note note = Note(
-                  title: data['title'],
-                  description: data['description'],
-                  category: data['category'],
-                  uid: data['uid'],
-                  noteid: data['noteid'],
-                  password: data['password'],
-                  imageURL: data['imageURL']);
-              return slidableNote(note);
+      if (!_isLoadData) {
+        loadData();
+        _isLoadData = true;
+      }
+      return Column(
+        children: [
+          searchBox(onChanged: _searchNotes),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _noteStream,
+              builder: (BuildContext context,
+                  AsyncSnapshot<QuerySnapshot> snapshot) {
+                if (snapshot.hasError) {
+                  return Text('Something went wrong');
+                }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.data!.docs.isEmpty) {
+                  return Center(child: Text('No notes found'));
+                }
+                return !_noteList.isEmpty
+                    ? GridView.builder(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                        ),
+                        itemCount: _noteList.length,
+                        itemBuilder: _buildItem,
+                      )
+                    : Center(child: Text('No any notes found'));
+              },
+            ),
+          )
+        ],
+      );
+    } else if (_selectedIndex == 3) {
+      _isLoadData = false;
+      return Container(
+        child: GestureDetector(
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+                return ChangePassword();
+              }));
             },
-          );
+            child: Text(
+              "Change Password",
+              style: TextStyle(fontSize: 15, color: Colors.blue),
+            )),
+      );
+    }
+    _isLoadData = false;
+    return AddTodoPage();
+  }
+
+  Widget buildView() {
+    if (_isListView) {
+      return ListView.builder(
+        itemCount: _noteList.length,
+        itemBuilder: (context, index) {
+          Map<String, dynamic> data = _noteList[index];
+          Note note = Note(
+              title: data['title'],
+              description: data['description'],
+              category: data['category'],
+              uid: data['uid'],
+              noteid: data['noteid'],
+              password: data['password'],
+              imageURL: data['imageURL']);
+          return slidableNote(note);
+        },
+      );
+    } else {
+      return GridView.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+        ),
+        itemBuilder: (context, index) {
+          // return a widget for each item in the grid
         },
       );
     }
-    return AddTodoPage();
+  }
+
+  Widget _buildItem(context, index) {
+    Map<String, dynamic> data = _noteList[index];
+    Note note = Note(
+        title: data['title'],
+        description: data['description'],
+        category: data['category'],
+        uid: data['uid'],
+        noteid: data['noteid'],
+        password: data['password'],
+        imageURL: data['imageURL']);
+    return gridCard(note);
+  }
+
+  Widget gridCard(Note note) {
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            title: Text('${note.title}'),
+            subtitle: Text('${note.description}'),
+          )
+        ],
+      ),
+    );
   }
 
   Widget slidableNote(Note note) {
@@ -257,7 +382,7 @@ class _HomePageState extends State<HomePage> {
                     onPressed: (context) => showDialog(
                       context: context,
                       builder: (BuildContext context) {
-                        return deleteNoteDialog(note);
+                        return passDialogForDelete(note);
                       },
                     ),
                     backgroundColor: Color(0xFFFE4A49),
@@ -344,8 +469,13 @@ class _HomePageState extends State<HomePage> {
             if (value == null || value.isEmpty) {
               return 'Please enter your password';
             }
+            if (note.password != _oldPassController.text) {
+              return 'Password incorrect';
+            }
             return null;
           },
+          maxLines: 1,
+          keyboardType: TextInputType.multiline,
           decoration: InputDecoration(
             border: OutlineInputBorder(),
             labelText: 'Password',
@@ -370,6 +500,59 @@ class _HomePageState extends State<HomePage> {
                   builder: (context) => EditNoteScreen(note: note),
                 ),
               );
+              clearController();
+            }
+          },
+          child: Text('Confirm'),
+        ),
+      ],
+    );
+  }
+
+  Widget passDialogForDelete(Note note) {
+    return AlertDialog(
+      title: Text('Enter password'),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _oldPassController,
+          obscureText: true,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter your password';
+            }
+            if (note.password != _oldPassController.text) {
+              return 'Password incorrect';
+            }
+            return null;
+          },
+          maxLines: 1,
+          keyboardType: TextInputType.multiline,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: 'Password',
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(false);
+            clearController();
+          },
+          child: Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () async {
+            bool passwordCorrect = _validatePassword(note.password.toString());
+            if (passwordCorrect) {
+              DocumentSnapshot snapshot = await _db
+                  .collection('notes')
+                  .where('noteid', isEqualTo: note.noteid)
+                  .get()
+                  .then((value) => value.docs.first);
+              _noteService.deleteNoteById(snapshot.id);
+              Navigator.pop(context);
               clearController();
             }
           },
@@ -407,6 +590,10 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void openDrawer(ScaffoldState scaffoldState) {
+    scaffoldState.openDrawer();
+  }
+
   AlertDialog deleteNoteDialog(Note note) {
     return AlertDialog(
       title: Text('Delete Note'),
@@ -418,12 +605,8 @@ class _HomePageState extends State<HomePage> {
         ),
         TextButton(
           onPressed: () async {
-            DocumentSnapshot snapshot = await _db
-                .collection('notes')
-                .where('noteid', isEqualTo: note.noteid)
-                .get()
-                .then((value) => value.docs.first);
-            _noteService.deleteNoteById(snapshot.id);
+            note.isDelete = true;
+            _noteService.editNote(note.noteid, note);
             Navigator.pop(context);
           },
           child: Text('DELETE'),
@@ -434,13 +617,19 @@ class _HomePageState extends State<HomePage> {
 
   AppBar _homeAppBar() {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.blue,
       elevation: 0,
-      title: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Icon(
-          Icons.menu,
-          color: Colors.black,
-          size: 30,
+      title: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+        ElevatedButton(
+          onPressed: () {
+            setState(() {
+              _isListView = !_isListView;
+            });
+          },
+          child: Text(
+            _isListView ? 'Switch to Grid View' : 'Switch to List View',
+            style: TextStyle(color: Colors.white),
+          ),
         ),
         GestureDetector(
           onTap: () async {
@@ -621,16 +810,18 @@ class _HomePageState extends State<HomePage> {
         ),
         TextButton(
           onPressed: () async {
-            DocumentSnapshot snapshot = await _db
-                .collection('notes')
-                .where('noteid', isEqualTo: note.noteid)
-                .get()
-                .then((value) => value.docs.first);
+            if (_formKey.currentState!.validate()) {
+              DocumentSnapshot snapshot = await _db
+                  .collection('notes')
+                  .where('noteid', isEqualTo: note.noteid)
+                  .get()
+                  .then((value) => value.docs.first);
 
-            String newPass = _newPassController.text.toString();
-            _noteService.updatePass(snapshot.id, newPass);
-            Navigator.of(context).pop();
-            clearController();
+              String newPass = _newPassController.text.toString();
+              _noteService.updatePass(snapshot.id, newPass);
+              Navigator.of(context).pop();
+              clearController();
+            }
           },
           child: Text("Save"),
         ),
@@ -676,15 +867,17 @@ class _HomePageState extends State<HomePage> {
         ),
         TextButton(
           onPressed: () async {
-            DocumentSnapshot snapshot = await _db
-                .collection('notes')
-                .where('noteid', isEqualTo: note.noteid)
-                .get()
-                .then((value) => value.docs.first);
+            if (_formKey.currentState!.validate()) {
+              DocumentSnapshot snapshot = await _db
+                  .collection('notes')
+                  .where('noteid', isEqualTo: note.noteid)
+                  .get()
+                  .then((value) => value.docs.first);
 
-            _noteService.updatePass(snapshot.id, '');
-            Navigator.pop(context);
-            clearController();
+              _noteService.updatePass(snapshot.id, '');
+              Navigator.pop(context);
+              clearController();
+            }
           },
           child: Text("Remove password"),
         ),

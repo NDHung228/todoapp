@@ -38,7 +38,7 @@ class AuthClass {
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
       }
     } catch (e) {
-      print("here---->");
+      
       final snackBar = SnackBar(content: Text(e.toString()));
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
@@ -56,7 +56,7 @@ class AuthClass {
   }
 
   void storeTokenAndData(UserCredential userCredential) async {
-    print("storing token and data");
+    
     await storage.write(
         key: "token", value: userCredential.credential!.token.toString());
     await storage.write(
