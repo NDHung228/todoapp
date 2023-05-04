@@ -12,7 +12,9 @@ import 'package:flutter/src/widgets/placeholder.dart';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:todoapp/Service/Note_Service.dart';
+import 'package:todoapp/model/Label.dart';
 import 'package:todoapp/page/HomePage.dart';
+import 'package:todoapp/page/LabelSelection.dart';
 import 'package:video_player/video_player.dart';
 
 import '../model/Note.dart';
@@ -29,7 +31,7 @@ class EditNoteScreen extends StatefulWidget {
 class _EditNoteScreenState extends State<EditNoteScreen> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
-  late String _label;
+  late List<String> _label;
   late String _noteid;
   late String documentID;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -41,18 +43,20 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   File? audioFile;
   VideoPlayerController? _videoController;
   var chewieController;
-  String? _audioURL ='';
+  String? _audioURL = '';
   final _audioPlayer = AudioPlayer();
   bool isPlayingSound = false;
   Duration durationSound = Duration.zero;
   Duration position = Duration.zero;
   ImagePicker image = ImagePicker();
   bool _isLoading = false;
+  List<String> _availableLabels = [];
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
+    loadData();
     _titleController = TextEditingController(text: widget.note.title);
     _descriptionController =
         TextEditingController(text: widget.note.description);
@@ -64,7 +68,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     videoURL = widget.note.videoURL ?? '';
     _audioURL = widget.note.soundURL ?? '';
 
-    print('audio ' +_audioURL.toString());
+    print('audio ' + _audioURL.toString());
     if (_audioURL!.length != 0) {
       audioFile = File(_audioURL.toString());
     }
@@ -154,6 +158,20 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     }
   }
 
+  Future<void> loadData() async {
+    try {
+      List<Label> listLabel = await _noteService.getLabels();
+
+      for (int i = 0; i < listLabel.length; i++) {
+        setState(() {
+          _availableLabels.add(listLabel[i].nameLabel ?? '');
+        });
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
   Future<String?> uploadVideo() async {
     String? downloadURL = '';
 
@@ -169,6 +187,11 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
       print('Error uploading video: $e');
     }
     return downloadURL;
+  }
+
+  void onLabelsSelected(List<String> selectedLabels) {
+    print('get data from ' + selectedLabels.length.toString());
+    _label = selectedLabels;
   }
 
   Future<String?> uploadImage() async {
@@ -194,7 +217,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
 
   final NoteService _noteService = NoteService();
 
-  void _selectCategory(String label) {
+  void _selectCategory(List<String> label) {
     setState(() {
       _label = label;
     });
@@ -218,6 +241,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: Text('Edit Note'),),
       body: Container(
         height: MediaQuery.of(context).size.height,
         width: MediaQuery.of(context).size.width,
@@ -260,24 +284,14 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
                   SizedBox(
                     height: 25,
                   ),
-                  label("Category"),
+                  label("label"),
                   SizedBox(
                     height: 12,
                   ),
-                  Wrap(
-                    runSpacing: 10,
-                    children: [
-                      chipData("Food", 0xffff6d6e),
-                      SizedBox(width: 20),
-                      chipData("WorkOut", 0xfff29732),
-                      SizedBox(width: 20),
-                      chipData("Work", 0xff6557ff),
-                      SizedBox(width: 20),
-                      chipData("Design", 0xff234ebd),
-                      SizedBox(width: 20),
-                      chipData("Run", 0xff2bc8d9),
-                    ],
-                  ),
+                  LabelSelector(
+                      allLabels: _availableLabels,
+                      onLabelsSelected: onLabelsSelected,
+                      selectedLabels: _label),
                   SizedBox(
                     height: 25,
                   ),
@@ -375,7 +389,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
   }
 
   Widget _buildAudio() {
-    return _audioURL?.length == 0  ? _buildFilePicker() : _buildAudioPlayer();
+    return _audioURL?.length == 0 ? _buildFilePicker() : _buildAudioPlayer();
   }
 
   Widget _buildFilePicker() {
@@ -410,7 +424,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
                         : Icon(Icons.play_arrow)),
                 Expanded(
                   child: Slider(
-                    min: 0, 
+                    min: 0,
                     max: durationSound.inSeconds.toDouble(),
                     activeColor: Colors.black,
                     value: position.inSeconds.toDouble(),
@@ -424,36 +438,6 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget chipData(String label, int color) {
-    return GestureDetector(
-      onTap: () {
-        _selectCategory(label);
-      },
-      child: Chip(
-        backgroundColor: _label == null || _label != label
-            ? Color(color)
-            : Color(color).withOpacity(0.6),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            10,
-          ),
-        ),
-        label: Text(
-          label,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        labelPadding: EdgeInsets.symmetric(
-          horizontal: 17,
-          vertical: 3.8,
         ),
       ),
     );
@@ -488,7 +472,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     String uid = user.uid;
     String title = _titleController.text;
     String description = _descriptionController.text;
-    String label = _label;
+    List<String> label = _label;
     if (imageFile != null) {
       imageURL = await uploadImage();
     }
@@ -503,7 +487,7 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
     } else {
       soundURL = await uploadSound() ?? '';
     }
-    print('upload audio '+soundURL);
+    print('upload audio ' + soundURL);
 
     Note note = Note(
         title: title,

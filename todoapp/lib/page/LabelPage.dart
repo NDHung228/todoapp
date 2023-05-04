@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:todoapp/page/NotesByLabel.dart';
 import '../model/Label.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../Service/Note_Service.dart';
@@ -83,6 +84,15 @@ class _LabelManagerState extends State<LabelManager> {
 
                       return ListTile(
                         title: Text(data['nameLabel']),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  NotesByLabel(label: data['nameLabel']),
+                            ),
+                          );
+                        },
                         trailing: IconButton(
                           icon: Icon(Icons.delete),
                           onPressed: () => _deleteLabel(data['nameLabel']),

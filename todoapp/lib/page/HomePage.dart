@@ -14,8 +14,6 @@ import '../Service/Note_Service.dart';
 import 'LabelPage.dart';
 
 class HomePage extends StatefulWidget {
-  HomePage({Key? key}) : super(key: key);
-
   @override
   _HomePageState createState() => _HomePageState();
 }
@@ -40,9 +38,12 @@ class _HomePageState extends State<HomePage> {
   late Stream<QuerySnapshot> _noteStream;
   late List<Map<String, dynamic>> _noteList;
   late List<Map<String, dynamic>> _allNotes;
+  List<String> listLabels = [];
   bool _isLoadData = false;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  
+
+  bool _isListView = true;
+
   @override
   void initState() {
     // TODO: implement initState
@@ -71,7 +72,6 @@ class _HomePageState extends State<HomePage> {
         return bTime.compareTo(aTime); // sort in descending order
       });
     });
-    
   }
 
   void _onItemTapped(int index) {
@@ -265,24 +265,7 @@ class _HomePageState extends State<HomePage> {
                   return Center(child: Text('No notes found'));
                 }
                 return !_noteList.isEmpty
-                    ? ListView.builder(
-                        itemCount: _noteList.length,
-                        itemBuilder: (context, index) {
-                          Map<String, dynamic> data = _noteList[index];
-                          Note note = Note(
-                              title: data['title'],
-                              description: data['description'],
-                              label: data['label'],
-                              uid: data['uid'],
-                              noteid: data['noteid'],
-                              password: data['password'],
-                              imageURL: data['imageURL'],
-                              videoURL: data['videoURL'],
-                              soundURL: data['soundURL'],
-                              dayDelete: data['dayDelete']);
-                          return slidableNote(note);
-                        },
-                      )
+                    ? buildView()
                     : Center(child: Text('No any notes found'));
               },
             ),
@@ -306,6 +289,66 @@ class _HomePageState extends State<HomePage> {
     }
     _isLoadData = false;
     return AddTodoPage();
+  }
+
+  Widget buildView() {
+    if (_isListView) {
+      return ListView.builder(
+          itemCount: _noteList.length,
+          itemBuilder: (context, index) {
+            Map<String, dynamic> data = _noteList[index];
+            List<String> listLabel = List<String>.from(data['label'] ?? []);
+
+            Note note = Note(
+                title: data['title'],
+                description: data['description'],
+                label: listLabel,
+                uid: data['uid'],
+                noteid: data['noteid'],
+                password: data['password'],
+                imageURL: data['imageURL'],
+                videoURL: data['videoURL'],
+                soundURL: data['soundURL'],
+                dayDelete: data['dayDelete']);
+            return slidableNote(note);
+          });
+    } else {
+      return GridView.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+        ),
+        itemCount: _noteList.length,
+        itemBuilder: _buildItem,
+      );
+    }
+  }
+
+  Widget _buildItem(context, index) {
+    Map<String, dynamic> data = _noteList[index];
+    List<String> listLabel = List<String>.from(data['label'] ?? []);
+
+    Note note = Note(
+        title: data['title'],
+        description: data['description'],
+        label: listLabel,
+        uid: data['uid'],
+        noteid: data['noteid'],
+        password: data['password'],
+        imageURL: data['imageURL']);
+    return gridCard(note);
+  }
+
+  Widget gridCard(Note note) {
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            title: Text('${note.title}'),
+            subtitle: Text('${note.description}'),
+          )
+        ],
+      ),
+    );
   }
 
   Widget slidableNote(Note note) {
@@ -388,7 +431,6 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           subtitle: Text(note.description.toString()),
-          trailing: Text(note.label.toString()),
           onTap: () {
             if (note.password!.length != 0) {
               showDialog(
@@ -582,6 +624,17 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.blue,
       elevation: 0,
       title: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+        ElevatedButton(
+          onPressed: () {
+            setState(() {
+              _isListView = !_isListView;
+            });
+          },
+          child: Text(
+            _isListView ? 'Switch to Grid View' : 'Switch to List View',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
         GestureDetector(
           onTap: () async {
             // Show a drop-down menu with one option: "Log Out"

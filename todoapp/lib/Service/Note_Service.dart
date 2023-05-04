@@ -7,6 +7,9 @@ class NoteService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final CollectionReference notesCollection =
       FirebaseFirestore.instance.collection('notes');
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  late List<Map<String, dynamic>> _allNotes;
 
   Future<int> getNotesCount() async {
     final QuerySnapshot snapshot = await notesCollection.get();
@@ -23,6 +26,39 @@ class NoteService {
     } catch (e) {
       print(e);
     }
+  }
+
+  Future<List<Map<String, dynamic>>> getNotesByLabel(String label) async {
+    User? user = _auth.currentUser;
+    Stream<QuerySnapshot> noteStream = FirebaseFirestore.instance
+        .collection('notes')
+        .where('uid', isEqualTo: user!.uid)
+        .where('isDelete', isEqualTo: false)
+        .snapshots();
+
+    noteStream.listen((QuerySnapshot snapshot) {
+      _allNotes = snapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+
+      _allNotes.sort((a, b) {
+        Timestamp aTime = a['timestamp'];
+        Timestamp bTime = b['timestamp'];
+        return bTime.compareTo(aTime); // sort in descending order
+      });
+    });
+    // List<Map<String, dynamic>> listNote = [];
+
+    // for (int i = 0; i < _allNotes.length; i++) {
+    //   Map<String, dynamic> data = _allNotes[i];
+    //   List<String> listLabels = data['label'];
+    //   for (int j = 0; j < listLabels.length; j++) {
+    //     if (listLabels[j] == label) {
+    //       listNote.add(_allNotes[i]);
+    //     }
+    //   }
+    // }
+    return _allNotes;
   }
 
   Future<void> deleteLabel(String uid, String nameLabel) async {
@@ -77,7 +113,7 @@ class NoteService {
         'password': '',
         'imageURL': note.imageURL,
         'videoURL': note.videoURL,
-        'soundURL':note.soundURL,
+        'soundURL': note.soundURL,
         'isDelete': note.isDelete,
         'dayDelete': note.dayDelete
       });
@@ -103,7 +139,7 @@ class NoteService {
         'timestamp': FieldValue.serverTimestamp(),
         'imageURL': updatedNote.imageURL,
         'videoURL': updatedNote.videoURL,
-        'soundURL' : updatedNote.soundURL,
+        'soundURL': updatedNote.soundURL,
         'isDelete': updatedNote.isDelete,
         'dayDelete': updatedNote.dayDelete
       });

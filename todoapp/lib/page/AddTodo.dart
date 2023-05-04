@@ -41,7 +41,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
   Duration durationSound = Duration.zero;
   Duration position = Duration.zero;
 
-  List<Label> _availableLabels = [];
+  List<String> _availableLabels = [];
 
   @override
   void initState() {
@@ -77,10 +77,13 @@ class _AddTodoPageState extends State<AddTodoPage> {
 
   Future<void> loadData() async {
     try {
-      _availableLabels = await _noteService.getLabels();
-      setState(() {
-        _availableLabels = _availableLabels;
-      });
+      List<Label> listLabel = await _noteService.getLabels();
+
+      for (int i = 0; i < listLabel.length; i++) {
+        setState(() {
+          _availableLabels.add(listLabel[i].nameLabel?? '');
+        });
+      }
     } catch (e) {
       print(e);
     }
@@ -193,6 +196,11 @@ class _AddTodoPageState extends State<AddTodoPage> {
     return downloadURL;
   }
 
+  void onLabelsSelected(List<String> selectedLabels) {
+   
+    _availableLabels = selectedLabels;
+  }
+
   void handleAddNote() async {
     setState(() {
       _isLoading = true;
@@ -207,7 +215,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
     String uid = user.uid;
     String title = _titleController.text;
     String description = _descriptionController.text;
-    String label = _label;
+    List<String> listLabel = _availableLabels;
 
     String? imageURL;
     if (imageFile == null) {
@@ -225,14 +233,14 @@ class _AddTodoPageState extends State<AddTodoPage> {
     String soundURL;
     if (audioFile == null) {
       soundURL = '';
-    } else  {
+    } else {
       soundURL = await uploadSound() ?? '';
     }
-
+    
     Note note = Note(
         title: title,
         description: description,
-        label: label,
+        label: listLabel,
         uid: uid,
         noteid: '',
         password: '',
@@ -241,7 +249,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
         soundURL: soundURL,
         isDelete: false,
         dayDelete: 1);
-
+    print('456');
     await _noteService.addNote(note);
     clearController();
 
@@ -314,7 +322,9 @@ class _AddTodoPageState extends State<AddTodoPage> {
                   SizedBox(
                     height: 12,
                   ),
-                  LabelSelector(allLabels: _availableLabels),
+                  LabelSelector(
+                      allLabels: _availableLabels,
+                      onLabelsSelected: onLabelsSelected),
                   SizedBox(
                     height: 25,
                   ),
@@ -395,36 +405,6 @@ class _AddTodoPageState extends State<AddTodoPage> {
               ),
             )
           ]),
-        ),
-      ),
-    );
-  }
-
-  Widget chipData(String label, int color) {
-    return GestureDetector(
-      onTap: () {
-        _selectLabel(label);
-      },
-      child: Chip(
-        backgroundColor: _label == null || _label != label
-            ? Color(color)
-            : Color(color).withOpacity(0.6),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            10,
-          ),
-        ),
-        label: Text(
-          label,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        labelPadding: EdgeInsets.symmetric(
-          horizontal: 17,
-          vertical: 3.8,
         ),
       ),
     );

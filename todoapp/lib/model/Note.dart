@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Note {
   final String title;
   final String description;
-  final String label;
+  final List<String> label;
   final String uid;
   final String noteid;
   final String? password;

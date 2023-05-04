@@ -2,20 +2,22 @@ import 'package:flutter/material.dart';
 import '../model/Label.dart';
 
 class LabelSelector extends StatefulWidget {
-  final List<Label> allLabels;
-
-  LabelSelector({required this.allLabels});
+  final List<String> allLabels;
+  final Function(List<String>) onLabelsSelected;
+  final List<String>? selectedLabels;
+  LabelSelector({required this.allLabels, required this.onLabelsSelected,this.selectedLabels});
 
   @override
   _LabelSelectorState createState() => _LabelSelectorState();
 }
 
 class _LabelSelectorState extends State<LabelSelector> {
-  List<Label> selectedLabels = [];
+  List<String> selectedLabels = [];
 
   @override
   void initState() {
     // TODO: implement initState
+    selectedLabels = List<String>.from(widget.selectedLabels??[]);
     super.initState();
   }
 
@@ -24,7 +26,7 @@ class _LabelSelectorState extends State<LabelSelector> {
     return Wrap(
       children: widget.allLabels.map((label) {
         return CheckboxListTile(
-          title: Text(label.nameLabel ?? ''),
+          title: Text(label?? ''),
           value: selectedLabels.contains(label),
           onChanged: (checked) {
             setState(() {
@@ -33,6 +35,7 @@ class _LabelSelectorState extends State<LabelSelector> {
               } else {
                 selectedLabels.remove(label);
               }
+              widget.onLabelsSelected(selectedLabels);
             });
           },
         );
