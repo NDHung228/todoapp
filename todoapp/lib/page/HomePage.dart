@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:todoapp/main.dart';
 import 'package:todoapp/Service/Auth_Service.dart';
+<<<<<<< HEAD
 import 'package:todoapp/model/Label.dart';
+=======
+>>>>>>> Chi
 import 'package:todoapp/page/TrashPage.dart';
 import 'AddTodo.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -41,8 +44,13 @@ class _HomePageState extends State<HomePage> {
   late List<Map<String, dynamic>> _noteList;
   late List<Map<String, dynamic>> _allNotes;
   bool _isLoadData = false;
+<<<<<<< HEAD
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   
+=======
+  bool _isListView = true;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+>>>>>>> Chi
   @override
   void initState() {
     // TODO: implement initState
@@ -71,7 +79,10 @@ class _HomePageState extends State<HomePage> {
         return bTime.compareTo(aTime); // sort in descending order
       });
     });
+<<<<<<< HEAD
     
+=======
+>>>>>>> Chi
   }
 
   void _onItemTapped(int index) {
@@ -155,7 +166,11 @@ class _HomePageState extends State<HomePage> {
             decoration: BoxDecoration(
               color: Colors.blue,
             ),
+<<<<<<< HEAD
             child: Text('App ToDo'),
+=======
+            child: Text('Drawer Header'),
+>>>>>>> Chi
           ),
           ListTile(
             leading: Icon(Icons.delete),
@@ -170,6 +185,7 @@ class _HomePageState extends State<HomePage> {
             },
           ),
           ListTile(
+<<<<<<< HEAD
             leading: Icon(Icons.label),
             title: const Text('Label '),
             onTap: () {
@@ -179,6 +195,14 @@ class _HomePageState extends State<HomePage> {
                   builder: (context) => LabelManager(),
                 ),
               );
+=======
+            title: const Text('Item 2'),
+            onTap: () {
+              // Update the state of the app
+              // ...
+              // Then close the drawer
+              Navigator.pop(context);
+>>>>>>> Chi
             },
           ),
         ],
@@ -265,6 +289,7 @@ class _HomePageState extends State<HomePage> {
                   return Center(child: Text('No notes found'));
                 }
                 return !_noteList.isEmpty
+<<<<<<< HEAD
                     ? ListView.builder(
                         itemCount: _noteList.length,
                         itemBuilder: (context, index) {
@@ -282,6 +307,14 @@ class _HomePageState extends State<HomePage> {
                               dayDelete: data['dayDelete']);
                           return slidableNote(note);
                         },
+=======
+                    ? GridView.builder(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                        ),
+                        itemCount: _noteList.length,
+                        itemBuilder: _buildItem,
+>>>>>>> Chi
                       )
                     : Center(child: Text('No any notes found'));
               },
@@ -306,6 +339,61 @@ class _HomePageState extends State<HomePage> {
     }
     _isLoadData = false;
     return AddTodoPage();
+  }
+
+  Widget buildView() {
+    if (_isListView) {
+      return ListView.builder(
+        itemCount: _noteList.length,
+        itemBuilder: (context, index) {
+          Map<String, dynamic> data = _noteList[index];
+          Note note = Note(
+              title: data['title'],
+              description: data['description'],
+              category: data['category'],
+              uid: data['uid'],
+              noteid: data['noteid'],
+              password: data['password'],
+              imageURL: data['imageURL']);
+          return slidableNote(note);
+        },
+      );
+    } else {
+      return GridView.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+        ),
+        itemBuilder: (context, index) {
+          // return a widget for each item in the grid
+        },
+      );
+    }
+  }
+
+  Widget _buildItem(context, index) {
+    Map<String, dynamic> data = _noteList[index];
+    Note note = Note(
+        title: data['title'],
+        description: data['description'],
+        category: data['category'],
+        uid: data['uid'],
+        noteid: data['noteid'],
+        password: data['password'],
+        imageURL: data['imageURL']);
+    return gridCard(note);
+  }
+
+  Widget gridCard(Note note) {
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            title: Text('${note.title}'),
+            subtitle: Text('${note.description}'),
+          )
+        ],
+      ),
+    );
   }
 
   Widget slidableNote(Note note) {
@@ -582,6 +670,20 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.blue,
       elevation: 0,
       title: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+<<<<<<< HEAD
+=======
+        ElevatedButton(
+          onPressed: () {
+            setState(() {
+              _isListView = !_isListView;
+            });
+          },
+          child: Text(
+            _isListView ? 'Switch to Grid View' : 'Switch to List View',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+>>>>>>> Chi
         GestureDetector(
           onTap: () async {
             // Show a drop-down menu with one option: "Log Out"

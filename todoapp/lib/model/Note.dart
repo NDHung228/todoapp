@@ -10,7 +10,10 @@ class Note {
   Timestamp? timestamp;
   String? imageURL;
   String? videoURL;
+<<<<<<< HEAD
   String? soundURL;
+=======
+>>>>>>> Chi
   bool? isDelete;
   int? dayDelete;
   Note(
@@ -23,6 +26,10 @@ class Note {
       this.password,
       this.imageURL,this.videoURL,
       this.isDelete,
+<<<<<<< HEAD
       this.dayDelete,this.soundURL});
+=======
+      this.dayDelete});
+>>>>>>> Chi
 
 }

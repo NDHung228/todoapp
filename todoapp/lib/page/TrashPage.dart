@@ -50,7 +50,11 @@ class _TrashPageState extends State<TrashPage> {
         Note note = Note(
             title: data['title'],
             description: data['description'],
+<<<<<<< HEAD
             label: data['label'],
+=======
+            category: data['category'],
+>>>>>>> Chi
             uid: data['uid'],
             noteid: data['noteid'],
             password: data['password'],
@@ -115,7 +119,11 @@ class _TrashPageState extends State<TrashPage> {
                 Note note = Note(
                     title: data['title'],
                     description: data['description'],
+<<<<<<< HEAD
                     label: data['label']?? '',
+=======
+                    category: data['category'],
+>>>>>>> Chi
                     uid: data['uid'],
                     noteid: data['noteid'],
                     password: data['password'],

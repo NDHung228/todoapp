@@ -221,12 +221,15 @@ class _AddTodoPageState extends State<AddTodoPage> {
       videoURL = '';
     } else {
       videoURL = await uploadVideo();
+<<<<<<< HEAD
     }
     String soundURL;
     if (audioFile == null) {
       soundURL = '';
     } else  {
       soundURL = await uploadSound() ?? '';
+=======
+>>>>>>> Chi
     }
 
     Note note = Note(
@@ -238,7 +241,10 @@ class _AddTodoPageState extends State<AddTodoPage> {
         password: '',
         imageURL: imageURL,
         videoURL: videoURL,
+<<<<<<< HEAD
         soundURL: soundURL,
+=======
+>>>>>>> Chi
         isDelete: false,
         dayDelete: 1);
 
