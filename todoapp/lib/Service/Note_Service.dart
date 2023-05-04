@@ -75,19 +75,11 @@ class NoteService {
         'timestamp': FieldValue.serverTimestamp(),
         'noteid': currentCount + 1,
         'password': '',
-<<<<<<< HEAD
         'imageURL': note.imageURL,
         'videoURL': note.videoURL,
         'soundURL':note.soundURL,
         'isDelete': note.isDelete,
         'dayDelete': note.dayDelete
-=======
-        'imageURL' : note.imageURL,
-        'videoURL' : note.videoURL,
-        'isDelete': note.isDelete,
-        'dayDelete': note.dayDelete
-
->>>>>>> Chi
       });
 
       DocumentSnapshot snapshot = await _db
@@ -109,7 +101,6 @@ class NoteService {
         'label': updatedNote.label,
         'uid': updatedNote.uid,
         'timestamp': FieldValue.serverTimestamp(),
-<<<<<<< HEAD
         'imageURL': updatedNote.imageURL,
         'videoURL': updatedNote.videoURL,
         'soundURL' : updatedNote.soundURL,
@@ -117,15 +108,6 @@ class NoteService {
         'dayDelete': updatedNote.dayDelete
       });
     } catch (e) {
-=======
-        'imageURL' : updatedNote.imageURL,
-        'videoURL': updatedNote.videoURL,
-        'isDelete': updatedNote.isDelete,
-        'dayDelete':updatedNote.dayDelete
-      });
-    } catch (e) {
-    
->>>>>>> Chi
       print(e);
     }
   }
@@ -135,10 +117,6 @@ class NoteService {
       await _db.collection('notes').doc(documentID).update(
           {'timestamp': FieldValue.serverTimestamp(), 'noteid': noteid});
     } catch (e) {
-<<<<<<< HEAD
-=======
-      
->>>>>>> Chi
       print(e);
     }
   }
@@ -148,10 +126,6 @@ class NoteService {
       await _db.collection('notes').doc(documentID).update(
           {'timestamp': FieldValue.serverTimestamp(), 'password': pass});
     } catch (e) {
-<<<<<<< HEAD
-=======
-      
->>>>>>> Chi
       print(e);
     }
   }
