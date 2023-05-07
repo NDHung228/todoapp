@@ -10,6 +10,10 @@ import cloud_firestore
 import firebase_auth
 import firebase_core
 import firebase_storage
+<<<<<<< Updated upstream
+=======
+import flutter_local_notifications
+>>>>>>> Stashed changes
 import flutter_secure_storage_macos
 import path_provider_foundation
 import wakelock_macos
@@ -20,6 +24,10 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   FLTFirebaseAuthPlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseAuthPlugin"))
   FLTFirebaseCorePlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseCorePlugin"))
   FLTFirebaseStoragePlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseStoragePlugin"))
+<<<<<<< Updated upstream
+=======
+  FlutterLocalNotificationsPlugin.register(with: registry.registrar(forPlugin: "FlutterLocalNotificationsPlugin"))
+>>>>>>> Stashed changes
   FlutterSecureStoragePlugin.register(with: registry.registrar(forPlugin: "FlutterSecureStoragePlugin"))
   PathProviderPlugin.register(with: registry.registrar(forPlugin: "PathProviderPlugin"))
   WakelockMacosPlugin.register(with: registry.registrar(forPlugin: "WakelockMacosPlugin"))

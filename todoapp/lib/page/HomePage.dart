@@ -48,8 +48,34 @@ class _HomePageState extends State<HomePage> {
     // TODO: implement initState
     loadData();
     super.initState();
+<<<<<<< Updated upstream
   }
 
+=======
+    Noti.initialize(flutterLocalNotificationsPlugin);
+  }
+
+  Future<List<String>> getSharedNotes(String userEmail) async {
+    QuerySnapshot sharedNotesSnapshot = await FirebaseFirestore.instance
+        .collection('shared_notes')
+        .where('shared_with', arrayContains: userEmail)
+        .get();
+
+    List<Map<String, dynamic>> sharedNotes = sharedNotesSnapshot.docs
+        .map<Map<String, dynamic>>((doc) => doc.data() as Map<String, dynamic>)
+        .toList();
+
+    List<String> listNoteid = [];
+
+    for (int i = 0; i < sharedNotes.length; i++) {
+      Map<String, dynamic> data = sharedNotes[i];
+      listNoteid.add(data['noteid']);
+    }
+
+    return listNoteid;
+  }
+
+>>>>>>> Stashed changes
   void loadData() async {
     User? user = _auth.currentUser;
     Stream<QuerySnapshot> noteStream = FirebaseFirestore.instance
@@ -408,6 +434,193 @@ class _HomePageState extends State<HomePage> {
         ));
   }
 
+<<<<<<< Updated upstream
+=======
+  void _showNoteOptions(Note note) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: Icon(Icons.push_pin),
+                title: Text('Pin this note'),
+                onTap: () {
+                  pinNote(note);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.people),
+                title: Text('Add the other users to note'),
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return addOtherUSer(note);
+                  },
+                ),
+              ),
+              ListTile(
+                leading: Icon(Icons.notification_add),
+                title: Text('Set Remind Note'),
+                onTap: () {
+                  print('demo');
+                  DateTime scheduledTime =
+                      DateTime.now().add(Duration(seconds: 10));
+                  Noti.showBigTextNotification(
+                      title: note.title,
+                      body: note.description,
+                      scheduledTime: scheduledTime,
+                      fln: flutterLocalNotificationsPlugin);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget setTimeRemind(Note note) {
+    return AlertDialog(
+      title: Text('Enter Email User'),
+      content: Form(
+        child: TextFormField(
+          controller: setRemindController,
+          onTap: () async {
+            final TimeOfDay? picked = await showTimePicker(
+              context: context,
+              initialTime: _selectedTime,
+            );
+
+            if (picked != null && picked != _selectedTime) {
+              setState(() {
+                _selectedTime = picked;
+              });
+            }
+          },
+          readOnly: true,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: 'Birthtime',
+            suffixIcon: Icon(
+              Icons.arrow_drop_down,
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(false);
+            clearController();
+          },
+          child: Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {},
+          child: Text('Confirm'),
+        ),
+      ],
+    );
+  }
+
+  Widget addOtherUSer(Note note) {
+    return AlertDialog(
+      title: Text('Enter Email User'),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _newUserController,
+          obscureText: false,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter user email';
+            }
+            if (!isEmailValid(value)) {
+              return 'Email is not valid';
+            }
+            return null;
+          },
+          maxLines: 1,
+          keyboardType: TextInputType.emailAddress,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: 'Email User',
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(false);
+            clearController();
+          },
+          child: Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            String userEmail = _newUserController.text;
+            if (_formKey.currentState!.validate()) {
+              handleAddNewUSer(context, userEmail, note);
+              Navigator.of(context).pop(false);
+              clearController();
+            }
+          },
+          child: Text('Confirm'),
+        ),
+      ],
+    );
+  }
+
+  void handleAddNewUSer(BuildContext context, String email, Note note) async {
+    bool noteExists = await FirebaseFirestore.instance
+        .collection('shared_notes')
+        .doc(note.noteid)
+        .get()
+        .then((doc) => doc.exists);
+
+    // if the note document doesn't exist, create it first
+    if (!noteExists) {
+      await FirebaseFirestore.instance
+          .collection('shared_notes')
+          .doc(note.noteid)
+          .set({
+        'title': note.title,
+        'description': note.description,
+        'noteid': note.noteid
+      });
+    }
+
+    // add the new user's email to the 'shared_with' array field
+    await FirebaseFirestore.instance
+        .collection('shared_notes')
+        .doc(note.noteid)
+        .update({
+      'shared_with': FieldValue.arrayUnion([email])
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Add new user success'),
+      ),
+    );
+  }
+
+  bool isEmailValid(String email) {
+    final RegExp regex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    return regex.hasMatch(email);
+  }
+
+  void pinNote(Note note) {
+    FirebaseFirestore.instance
+        .collection('notes')
+        .doc(note.noteid)
+        .update({'isPinned': !note.isPinned});
+  }
+
+>>>>>>> Stashed changes
   bool _validatePassword(String password) {
     if (_formKey.currentState!.validate()) {
       // Password is valid, compare it to the note's password
