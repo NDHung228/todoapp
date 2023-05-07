@@ -248,7 +248,9 @@ class _AddTodoPageState extends State<AddTodoPage> {
         videoURL: videoURL,
         soundURL: soundURL,
         isDelete: false,
-        dayDelete: 1);
+        dayDelete: 1,
+        isPinned: false,
+        timestamp: Timestamp.now());
     print('456');
     await _noteService.addNote(note);
     clearController();

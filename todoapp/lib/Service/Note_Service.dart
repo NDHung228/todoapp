@@ -115,7 +115,8 @@ class NoteService {
         'videoURL': note.videoURL,
         'soundURL': note.soundURL,
         'isDelete': note.isDelete,
-        'dayDelete': note.dayDelete
+        'dayDelete': note.dayDelete,
+        'isPinned': false
       });
 
       DocumentSnapshot snapshot = await _db
@@ -136,12 +137,13 @@ class NoteService {
         'description': updatedNote.description,
         'label': updatedNote.label,
         'uid': updatedNote.uid,
-        'timestamp': FieldValue.serverTimestamp(),
+        'timestamp': updatedNote.timestamp,
         'imageURL': updatedNote.imageURL,
         'videoURL': updatedNote.videoURL,
         'soundURL': updatedNote.soundURL,
         'isDelete': updatedNote.isDelete,
-        'dayDelete': updatedNote.dayDelete
+        'dayDelete': updatedNote.dayDelete,
+        'isPinned': updatedNote.isPinned
       });
     } catch (e) {
       print(e);

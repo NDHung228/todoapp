@@ -499,7 +499,9 @@ class _EditNoteScreenState extends State<EditNoteScreen> {
         videoURL: videoURL,
         soundURL: soundURL,
         dayDelete: 1,
-        isDelete: false);
+        isDelete: false,
+        timestamp: widget.note.timestamp,
+        isPinned: widget.note.isPinned);
 
     await _noteService.editNote(documentID, note);
     clearController();

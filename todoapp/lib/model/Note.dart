@@ -7,22 +7,23 @@ class Note {
   final String uid;
   final String noteid;
   final String? password;
-  Timestamp? timestamp;
+  Timestamp timestamp;
   String? imageURL;
   String? videoURL;
   String? soundURL;
   bool? isDelete;
   int? dayDelete;
+  bool isPinned;
   Note(
       {required this.title,
       required this.description,
       required this.label,
       required this.uid,
       required this.noteid,
-      this.timestamp,
+      required this.timestamp,
       this.password,
       this.imageURL,this.videoURL,
       this.isDelete,
-      this.dayDelete,this.soundURL});
+      this.dayDelete,this.soundURL,required this.isPinned});
 
 }

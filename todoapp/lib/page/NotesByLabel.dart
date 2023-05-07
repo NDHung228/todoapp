@@ -58,7 +58,7 @@ class _NotesByLabelState extends State<NotesByLabel> {
       for (int i = 0; i < _notesByLabel.length; i++) {
         Map<String, dynamic> data = _notesByLabel[i];
         List<String> listLabels = data['label'];
-        for (int j = 0; j < listLabels.length; j++) {
+        for (int j = 0; j < listLabels.length; j++) {   
           if (listLabels[j] == label) {
             listNote.add(_notesByLabel[i]);
           }

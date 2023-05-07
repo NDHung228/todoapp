@@ -59,7 +59,8 @@ class _TrashPageState extends State<TrashPage> {
             videoURL: data['videoURL'],
             isDelete: data['isDelete'],
             timestamp: data['timestamp'],
-            dayDelete: data['dayDelete']);
+            dayDelete: data['dayDelete'],
+            isPinned: data['isPinned']);
         final timeNow = DateTime.now();
         DateTime timeNote = note.timestamp!.toDate();
         final noteDate = DateTime(2023, 4, 30);
@@ -125,7 +126,10 @@ class _TrashPageState extends State<TrashPage> {
                     password: data['password'],
                     imageURL: data['imageURL'],
                     videoURL: data['videoURL'],
-                    isDelete: data['isDelete']);
+                    soundURL: data['soundURL'],
+                    isDelete: data['isDelete'],
+                    isPinned: data['isPinned'],
+                    timestamp: data['timestamp']);
                 return slidableNote(note);
               },
             )

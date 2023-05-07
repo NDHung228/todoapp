@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:todoapp/main.dart';
 import 'package:todoapp/Service/Auth_Service.dart';
 import 'package:todoapp/model/Label.dart';
+import 'package:todoapp/page/NotificationPage.dart';
+import 'package:todoapp/page/SettingPage.dart';
 import 'package:todoapp/page/TrashPage.dart';
 import 'AddTodo.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,6 +15,8 @@ import '../model/Note.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../Service/Note_Service.dart';
 import 'LabelPage.dart';
+import 'Notification.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -26,9 +31,12 @@ class _HomePageState extends State<HomePage> {
   TextEditingController _textPassController = TextEditingController();
   TextEditingController _textConfirmController = TextEditingController();
   TextEditingController _oldPassController = TextEditingController();
+  TextEditingController _newUserController = TextEditingController();
   TextEditingController _newPassConfirmController = TextEditingController();
   TextEditingController _newPassController = TextEditingController();
   TextEditingController _changePassController = TextEditingController();
+  TextEditingController setRemindController = TextEditingController();
+  TimeOfDay _selectedTime = TimeOfDay(hour: 0, minute: 0);
   var focus = FocusNode();
   List<Note> _notes = []; // List of all notes
   List<Note> _searchedNotes = []; // List of notes that match search query
@@ -41,18 +49,45 @@ class _HomePageState extends State<HomePage> {
   List<String> listLabels = [];
   bool _isLoadData = false;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
   bool _isListView = true;
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
     // TODO: implement initState
     loadData();
     super.initState();
+    Noti.initialize(flutterLocalNotificationsPlugin);
+
   }
+
+  Future<List<String>> getSharedNotes(String userEmail) async {
+    QuerySnapshot sharedNotesSnapshot = await FirebaseFirestore.instance
+        .collection('shared_notes')
+        .where('shared_with', arrayContains: userEmail)
+        .get();
+
+    List<Map<String, dynamic>> sharedNotes = sharedNotesSnapshot.docs
+        .map<Map<String, dynamic>>((doc) => doc.data() as Map<String, dynamic>)
+        .toList();
+
+    List<String> listNoteid = [];
+
+    for (int i = 0; i < sharedNotes.length; i++) {
+      Map<String, dynamic> data = sharedNotes[i];
+      listNoteid.add(data['noteid']);
+    }
+
+    return listNoteid;
+  }
+
+
+
 
   void loadData() async {
     User? user = _auth.currentUser;
+
     Stream<QuerySnapshot> noteStream = FirebaseFirestore.instance
         .collection('notes')
         .where('uid', isEqualTo: user!.uid)
@@ -65,12 +100,29 @@ class _HomePageState extends State<HomePage> {
       _allNotes = snapshot.docs
           .map((doc) => doc.data() as Map<String, dynamic>)
           .toList();
-      _noteList = _allNotes;
-      _noteList.sort((a, b) {
+
+      // Filter notes by pinned vs. unpinned
+      List<Map<String, dynamic>> pinnedNotes =
+          _allNotes.where((note) => note['isPinned'] == true).toList();
+      List<Map<String, dynamic>> unpinnedNotes =
+          _allNotes.where((note) => note['isPinned'] != true).toList();
+
+      // Sort pinned notes by timestamp
+      pinnedNotes.sort((a, b) {
         Timestamp aTime = a['timestamp'];
         Timestamp bTime = b['timestamp'];
         return bTime.compareTo(aTime); // sort in descending order
       });
+
+      // Sort unpinned notes by timestamp
+      unpinnedNotes.sort((a, b) {
+        Timestamp aTime = a['timestamp'];
+        Timestamp bTime = b['timestamp'];
+        return bTime.compareTo(aTime); // sort in descending order
+      });
+
+      // Combine pinned and unpinned notes, with pinned notes first
+      _noteList = [...pinnedNotes, ...unpinnedNotes];
     });
   }
 
@@ -88,6 +140,7 @@ class _HomePageState extends State<HomePage> {
     _newPassConfirmController.dispose();
     _newPassController.dispose();
     _changePassController.dispose();
+    _newUserController.dispose();
     super.dispose();
   }
 
@@ -98,6 +151,7 @@ class _HomePageState extends State<HomePage> {
     _newPassConfirmController.clear();
     _newPassController.clear();
     _changePassController.clear();
+    _newUserController.clear();
   }
 
   void _searchNotes(String query) {
@@ -274,21 +328,10 @@ class _HomePageState extends State<HomePage> {
       );
     } else if (_selectedIndex == 3) {
       _isLoadData = false;
-      return Container(
-        child: GestureDetector(
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return ChangePassword();
-              }));
-            },
-            child: Text(
-              "Change Password",
-              style: TextStyle(fontSize: 15, color: Colors.blue),
-            )),
-      );
+      return SettingPage();
     }
     _isLoadData = false;
-    return AddTodoPage();
+    return NotificationPage();
   }
 
   Widget buildView() {
@@ -309,7 +352,9 @@ class _HomePageState extends State<HomePage> {
                 imageURL: data['imageURL'],
                 videoURL: data['videoURL'],
                 soundURL: data['soundURL'],
-                dayDelete: data['dayDelete']);
+                dayDelete: data['dayDelete'],
+                isPinned: data['isPinned'],
+                timestamp: data['timestamp']);
             return slidableNote(note);
           });
     } else {
@@ -334,7 +379,9 @@ class _HomePageState extends State<HomePage> {
         uid: data['uid'],
         noteid: data['noteid'],
         password: data['password'],
-        imageURL: data['imageURL']);
+        imageURL: data['imageURL'],
+        isPinned: data['isPinned'],
+        timestamp: data['timestamp']);
     return gridCard(note);
   }
 
@@ -428,6 +475,7 @@ class _HomePageState extends State<HomePage> {
               note.password != null && note.password!.isNotEmpty
                   ? Icon(Icons.lock)
                   : SizedBox(),
+              note.isPinned == true ? Icon(Icons.push_pin) : SizedBox()
             ],
           ),
           subtitle: Text(note.description.toString()),
@@ -448,7 +496,191 @@ class _HomePageState extends State<HomePage> {
               );
             }
           },
+          onLongPress: () {
+            _showNoteOptions(note);
+          },
         ));
+  }
+
+  void _showNoteOptions(Note note) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: Icon(Icons.push_pin),
+                title: Text('Pin this note'),
+                onTap: () {
+                  pinNote(note);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.people),
+                title: Text('Add the other users to note'),
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return addOtherUSer(note);
+                  },
+                ),
+              ),
+              ListTile(
+                leading: Icon(Icons.notification_add),
+                title: Text('Set Remind Note'),
+                onTap: () {
+                  print('demo');
+                  DateTime scheduledTime = DateTime.now().add(Duration(seconds: 10));
+                  Noti.showBigTextNotification(title: note.title , body: note.description,scheduledTime: scheduledTime, fln: flutterLocalNotificationsPlugin);
+                  
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget setTimeRemind(Note note) {
+    return AlertDialog(
+      title: Text('Enter Email User'),
+      content: Form(
+        child: TextFormField(
+          controller: setRemindController,
+          onTap: () async {
+            final TimeOfDay? picked = await showTimePicker(
+              context: context,
+              initialTime: _selectedTime,
+            );
+
+            if (picked != null && picked != _selectedTime) {
+              setState(() {
+                _selectedTime = picked;
+                
+              });
+            }
+          },
+          readOnly: true,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: 'Birthtime',
+            suffixIcon: Icon(
+              Icons.arrow_drop_down,
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(false);
+            clearController();
+          },
+          child: Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {},
+          child: Text('Confirm'),
+        ),
+      ],
+    );
+  }
+
+  Widget addOtherUSer(Note note) {
+    return AlertDialog(
+      title: Text('Enter Email User'),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _newUserController,
+          obscureText: false,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter user email';
+            }
+            if (!isEmailValid(value)) {
+              return 'Email is not valid';
+            }
+            return null;
+          },
+          maxLines: 1,
+          keyboardType: TextInputType.emailAddress,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: 'Email User',
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(false);
+            clearController();
+          },
+          child: Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () {
+            String userEmail = _newUserController.text;
+            if (_formKey.currentState!.validate()) {
+              handleAddNewUSer(context, userEmail, note);
+              Navigator.of(context).pop(false);
+              clearController();
+            }
+          },
+          child: Text('Confirm'),
+        ),
+      ],
+    );
+  }
+
+  void handleAddNewUSer(BuildContext context, String email, Note note) async {
+    bool noteExists = await FirebaseFirestore.instance
+        .collection('shared_notes')
+        .doc(note.noteid)
+        .get()
+        .then((doc) => doc.exists);
+
+    // if the note document doesn't exist, create it first
+    if (!noteExists) {
+      await FirebaseFirestore.instance
+          .collection('shared_notes')
+          .doc(note.noteid)
+          .set({
+        'title': note.title,
+        'description': note.description,
+        'noteid': note.noteid
+      });
+    }
+
+    // add the new user's email to the 'shared_with' array field
+    await FirebaseFirestore.instance
+        .collection('shared_notes')
+        .doc(note.noteid)
+        .update({
+      'shared_with': FieldValue.arrayUnion([email])
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Add new user success'),
+      ),
+    );
+  }
+
+  bool isEmailValid(String email) {
+    final RegExp regex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    return regex.hasMatch(email);
+  }
+
+  void pinNote(Note note) {
+    FirebaseFirestore.instance
+        .collection('notes')
+        .doc(note.noteid)
+        .update({'isPinned': !note.isPinned});
   }
 
   bool _validatePassword(String password) {
