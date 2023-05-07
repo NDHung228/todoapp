@@ -47,10 +47,11 @@ class _TrashPageState extends State<TrashPage> {
 
       for (int i = 0; i < result.length; i++) {
         Map<String, dynamic> data = result[i];
+        List<String> listLabel = List<String>.from(data['label'] ?? []);
         Note note = Note(
             title: data['title'],
             description: data['description'],
-            label: data['label'],
+            label: listLabel ?? [],
             uid: data['uid'],
             noteid: data['noteid'],
             password: data['password'],
@@ -58,7 +59,8 @@ class _TrashPageState extends State<TrashPage> {
             videoURL: data['videoURL'],
             isDelete: data['isDelete'],
             timestamp: data['timestamp'],
-            dayDelete: data['dayDelete']);
+            dayDelete: data['dayDelete'],
+            isPinned: data['isPinned']);
         final timeNow = DateTime.now();
         DateTime timeNote = note.timestamp!.toDate();
         final noteDate = DateTime(2023, 4, 30);
@@ -67,7 +69,7 @@ class _TrashPageState extends State<TrashPage> {
         print('test1 ' + timeNow.difference(timeNote).inDays.toString());
         print('test2 ' + timeNow.difference(noteDate).inDays.toString());
         int? dayDelete = note.dayDelete;
-        print('test3 '+dayDelete.toString());
+        print('test3 ' + dayDelete.toString());
 
         if (daysGap >= dayDelete!) {
           _noteService.deleteNoteById(note.noteid);
@@ -112,16 +114,22 @@ class _TrashPageState extends State<TrashPage> {
                   .length, // Replace with the actual number of notes in the recycle bin
               itemBuilder: (BuildContext context, int index) {
                 Map<String, dynamic> data = noteList[index];
+
+                List<String> listLabel = List<String>.from(data['label'] ?? []);
+
                 Note note = Note(
                     title: data['title'],
                     description: data['description'],
-                    label: data['label']?? '',
+                    label: listLabel ?? [],
                     uid: data['uid'],
                     noteid: data['noteid'],
                     password: data['password'],
                     imageURL: data['imageURL'],
                     videoURL: data['videoURL'],
-                    isDelete: data['isDelete']);
+                    soundURL: data['soundURL'],
+                    isDelete: data['isDelete'],
+                    isPinned: data['isPinned'],
+                    timestamp: data['timestamp']);
                 return slidableNote(note);
               },
             )

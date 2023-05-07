@@ -41,7 +41,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
   Duration durationSound = Duration.zero;
   Duration position = Duration.zero;
 
-  List<Label> _availableLabels = [];
+  List<String> _availableLabels = [];
 
   @override
   void initState() {
@@ -77,10 +77,13 @@ class _AddTodoPageState extends State<AddTodoPage> {
 
   Future<void> loadData() async {
     try {
-      _availableLabels = await _noteService.getLabels();
-      setState(() {
-        _availableLabels = _availableLabels;
-      });
+      List<Label> listLabel = await _noteService.getLabels();
+
+      for (int i = 0; i < listLabel.length; i++) {
+        setState(() {
+          _availableLabels.add(listLabel[i].nameLabel?? '');
+        });
+      }
     } catch (e) {
       print(e);
     }
@@ -193,6 +196,11 @@ class _AddTodoPageState extends State<AddTodoPage> {
     return downloadURL;
   }
 
+  void onLabelsSelected(List<String> selectedLabels) {
+   
+    _availableLabels = selectedLabels;
+  }
+
   void handleAddNote() async {
     setState(() {
       _isLoading = true;
@@ -203,11 +211,11 @@ class _AddTodoPageState extends State<AddTodoPage> {
       // handle user not logged in
       return;
     }
-    String? soundURL = await uploadSound();
+
     String uid = user.uid;
     String title = _titleController.text;
     String description = _descriptionController.text;
-    String label = _label;
+    List<String> listLabel = _availableLabels;
 
     String? imageURL;
     if (imageFile == null) {
@@ -222,16 +230,17 @@ class _AddTodoPageState extends State<AddTodoPage> {
     } else {
       videoURL = await uploadVideo();
     }
+    String soundURL;
     if (audioFile == null) {
       soundURL = '';
     } else {
-      soundURL = await uploadSound();
+      soundURL = await uploadSound() ?? '';
     }
-
+    
     Note note = Note(
         title: title,
         description: description,
-        label: label,
+        label: listLabel,
         uid: uid,
         noteid: '',
         password: '',
@@ -239,8 +248,10 @@ class _AddTodoPageState extends State<AddTodoPage> {
         videoURL: videoURL,
         soundURL: soundURL,
         isDelete: false,
-        dayDelete: 1);
-
+        dayDelete: 1,
+        isPinned: false,
+        timestamp: Timestamp.now());
+    print('456');
     await _noteService.addNote(note);
     clearController();
 
@@ -313,7 +324,9 @@ class _AddTodoPageState extends State<AddTodoPage> {
                   SizedBox(
                     height: 12,
                   ),
-                  LabelSelector(allLabels: _availableLabels),
+                  LabelSelector(
+                      allLabels: _availableLabels,
+                      onLabelsSelected: onLabelsSelected),
                   SizedBox(
                     height: 25,
                   ),
@@ -394,36 +407,6 @@ class _AddTodoPageState extends State<AddTodoPage> {
               ),
             )
           ]),
-        ),
-      ),
-    );
-  }
-
-  Widget chipData(String label, int color) {
-    return GestureDetector(
-      onTap: () {
-        _selectLabel(label);
-      },
-      child: Chip(
-        backgroundColor: _label == null || _label != label
-            ? Color(color)
-            : Color(color).withOpacity(0.6),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(
-            10,
-          ),
-        ),
-        label: Text(
-          label,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        labelPadding: EdgeInsets.symmetric(
-          horizontal: 17,
-          vertical: 3.8,
         ),
       ),
     );
@@ -526,8 +509,7 @@ class _AddTodoPageState extends State<AddTodoPage> {
                     onPressed: () async {
                       if (!isPlayingSound) {
                         print('test play aduio');
-                        await _audioPlayer.play(UrlSource(
-                            'https://firebasestorage.googleapis.com/v0/b/todoapp-a20f5.appspot.com/o/sounds%2F2023-05-04%2008%3A08%3A06.699974?alt=media&token=6f76f868-c9e6-4f5a-a728-11a760da373b'));
+                        await _audioPlayer.play(UrlSource(_audioURL ?? ''));
                       } else {
                         await _audioPlayer.pause();
                       }

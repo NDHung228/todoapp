@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:todoapp/main.dart';
 import 'package:todoapp/Service/Auth_Service.dart';
 import 'package:todoapp/model/Label.dart';
+import 'package:todoapp/page/NotificationPage.dart';
+import 'package:todoapp/page/SettingPage.dart';
 import 'package:todoapp/page/TrashPage.dart';
 import 'AddTodo.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,10 +15,10 @@ import '../model/Note.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../Service/Note_Service.dart';
 import 'LabelPage.dart';
+import 'Notification.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class HomePage extends StatefulWidget {
-  HomePage({Key? key}) : super(key: key);
-
   @override
   _HomePageState createState() => _HomePageState();
 }
@@ -28,9 +31,12 @@ class _HomePageState extends State<HomePage> {
   TextEditingController _textPassController = TextEditingController();
   TextEditingController _textConfirmController = TextEditingController();
   TextEditingController _oldPassController = TextEditingController();
+  TextEditingController _newUserController = TextEditingController();
   TextEditingController _newPassConfirmController = TextEditingController();
   TextEditingController _newPassController = TextEditingController();
   TextEditingController _changePassController = TextEditingController();
+  TextEditingController setRemindController = TextEditingController();
+  TimeOfDay _selectedTime = TimeOfDay(hour: 0, minute: 0);
   var focus = FocusNode();
   List<Note> _notes = []; // List of all notes
   List<Note> _searchedNotes = []; // List of notes that match search query
@@ -40,18 +46,18 @@ class _HomePageState extends State<HomePage> {
   late Stream<QuerySnapshot> _noteStream;
   late List<Map<String, dynamic>> _noteList;
   late List<Map<String, dynamic>> _allNotes;
+  List<String> listLabels = [];
   bool _isLoadData = false;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  
+  bool _isListView = true;
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
   @override
   void initState() {
     // TODO: implement initState
     loadData();
     super.initState();
-<<<<<<< Updated upstream
-  }
-
-=======
     Noti.initialize(flutterLocalNotificationsPlugin);
   }
 
@@ -75,9 +81,9 @@ class _HomePageState extends State<HomePage> {
     return listNoteid;
   }
 
->>>>>>> Stashed changes
   void loadData() async {
     User? user = _auth.currentUser;
+
     Stream<QuerySnapshot> noteStream = FirebaseFirestore.instance
         .collection('notes')
         .where('uid', isEqualTo: user!.uid)
@@ -90,14 +96,30 @@ class _HomePageState extends State<HomePage> {
       _allNotes = snapshot.docs
           .map((doc) => doc.data() as Map<String, dynamic>)
           .toList();
-      _noteList = _allNotes;
-      _noteList.sort((a, b) {
+
+      // Filter notes by pinned vs. unpinned
+      List<Map<String, dynamic>> pinnedNotes =
+          _allNotes.where((note) => note['isPinned'] == true).toList();
+      List<Map<String, dynamic>> unpinnedNotes =
+          _allNotes.where((note) => note['isPinned'] != true).toList();
+
+      // Sort pinned notes by timestamp
+      pinnedNotes.sort((a, b) {
         Timestamp aTime = a['timestamp'];
         Timestamp bTime = b['timestamp'];
         return bTime.compareTo(aTime); // sort in descending order
       });
+
+      // Sort unpinned notes by timestamp
+      unpinnedNotes.sort((a, b) {
+        Timestamp aTime = a['timestamp'];
+        Timestamp bTime = b['timestamp'];
+        return bTime.compareTo(aTime); // sort in descending order
+      });
+
+      // Combine pinned and unpinned notes, with pinned notes first
+      _noteList = [...pinnedNotes, ...unpinnedNotes];
     });
-    
   }
 
   void _onItemTapped(int index) {
@@ -114,6 +136,7 @@ class _HomePageState extends State<HomePage> {
     _newPassConfirmController.dispose();
     _newPassController.dispose();
     _changePassController.dispose();
+    _newUserController.dispose();
     super.dispose();
   }
 
@@ -124,6 +147,7 @@ class _HomePageState extends State<HomePage> {
     _newPassConfirmController.clear();
     _newPassController.clear();
     _changePassController.clear();
+    _newUserController.clear();
   }
 
   void _searchNotes(String query) {
@@ -291,23 +315,7 @@ class _HomePageState extends State<HomePage> {
                   return Center(child: Text('No notes found'));
                 }
                 return !_noteList.isEmpty
-                    ? ListView.builder(
-                        itemCount: _noteList.length,
-                        itemBuilder: (context, index) {
-                          Map<String, dynamic> data = _noteList[index];
-                          Note note = Note(
-                              title: data['title'],
-                              description: data['description'],
-                              label: data['label'],
-                              uid: data['uid'],
-                              noteid: data['noteid'],
-                              password: data['password'],
-                              imageURL: data['imageURL'],
-                              videoURL: data['videoURL'],
-                              dayDelete: data['dayDelete']);
-                          return slidableNote(note);
-                        },
-                      )
+                    ? buildView()
                     : Center(child: Text('No any notes found'));
               },
             ),
@@ -316,21 +324,74 @@ class _HomePageState extends State<HomePage> {
       );
     } else if (_selectedIndex == 3) {
       _isLoadData = false;
-      return Container(
-        child: GestureDetector(
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return ChangePassword();
-              }));
-            },
-            child: Text(
-              "Change Password",
-              style: TextStyle(fontSize: 15, color: Colors.blue),
-            )),
-      );
+      return SettingPage();
     }
     _isLoadData = false;
-    return AddTodoPage();
+    return NotificationPage();
+  }
+
+  Widget buildView() {
+    if (_isListView) {
+      return ListView.builder(
+          itemCount: _noteList.length,
+          itemBuilder: (context, index) {
+            Map<String, dynamic> data = _noteList[index];
+            List<String> listLabel = List<String>.from(data['label'] ?? []);
+
+            Note note = Note(
+                title: data['title'],
+                description: data['description'],
+                label: listLabel,
+                uid: data['uid'],
+                noteid: data['noteid'],
+                password: data['password'],
+                imageURL: data['imageURL'],
+                videoURL: data['videoURL'],
+                soundURL: data['soundURL'],
+                dayDelete: data['dayDelete'],
+                isPinned: data['isPinned'],
+                timestamp: data['timestamp']);
+            return slidableNote(note);
+          });
+    } else {
+      return GridView.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+        ),
+        itemCount: _noteList.length,
+        itemBuilder: _buildItem,
+      );
+    }
+  }
+
+  Widget _buildItem(context, index) {
+    Map<String, dynamic> data = _noteList[index];
+    List<String> listLabel = List<String>.from(data['label'] ?? []);
+
+    Note note = Note(
+        title: data['title'],
+        description: data['description'],
+        label: listLabel,
+        uid: data['uid'],
+        noteid: data['noteid'],
+        password: data['password'],
+        imageURL: data['imageURL'],
+        isPinned: data['isPinned'],
+        timestamp: data['timestamp']);
+    return gridCard(note);
+  }
+
+  Widget gridCard(Note note) {
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            title: Text('${note.title}'),
+            subtitle: Text('${note.description}'),
+          )
+        ],
+      ),
+    );
   }
 
   Widget slidableNote(Note note) {
@@ -410,10 +471,10 @@ class _HomePageState extends State<HomePage> {
               note.password != null && note.password!.isNotEmpty
                   ? Icon(Icons.lock)
                   : SizedBox(),
+              note.isPinned == true ? Icon(Icons.push_pin) : SizedBox()
             ],
           ),
           subtitle: Text(note.description.toString()),
-          trailing: Text(note.label.toString()),
           onTap: () {
             if (note.password!.length != 0) {
               showDialog(
@@ -431,11 +492,12 @@ class _HomePageState extends State<HomePage> {
               );
             }
           },
+          onLongPress: () {
+            _showNoteOptions(note);
+          },
         ));
   }
 
-<<<<<<< Updated upstream
-=======
   void _showNoteOptions(Note note) {
     showModalBottomSheet(
       context: context,
@@ -620,7 +682,6 @@ class _HomePageState extends State<HomePage> {
         .update({'isPinned': !note.isPinned});
   }
 
->>>>>>> Stashed changes
   bool _validatePassword(String password) {
     if (_formKey.currentState!.validate()) {
       // Password is valid, compare it to the note's password
@@ -794,6 +855,17 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.blue,
       elevation: 0,
       title: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+        ElevatedButton(
+          onPressed: () {
+            setState(() {
+              _isListView = !_isListView;
+            });
+          },
+          child: Text(
+            _isListView ? 'Switch to Grid View' : 'Switch to List View',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
         GestureDetector(
           onTap: () async {
             // Show a drop-down menu with one option: "Log Out"
